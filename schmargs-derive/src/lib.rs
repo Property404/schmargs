@@ -70,17 +70,13 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
 
     let num = arg_positional3.clone().enumerate().map(|(i, _)| i);
 
-    //println!("IMPL: {:?}", pretty_print(&impl_generics));
-    //println!("LIFETIME: {:?}", &quote! {#lifetime});
-    println!("STRUCT: {:?}", quote! {#struct_generics});
-
     let gen = quote! {
         impl #impl_generics ::schmargs::Schmargs <#lifetime> for #name #struct_generics {
             fn description() -> &'static str {
                 unimplemented!("Fuck me")
             }
 
-            fn parse(args: impl Iterator<Item =  & #lifetime str>) -> Result<Self, ::schmargs::SchmargsError> {
+            fn parse(args: impl Iterator<Item =  & #lifetime str>) -> Result<Self, ::schmargs::SchmargsError<#lifetime>> {
                 let args = ::schmargs::ArgumentIterator::from_args(args);
 
                 // flags
@@ -111,7 +107,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
                             }
                             pos_count += 1;
                         },
-                        _=> {return Err(::schmargs::SchmargsError::ParseError);}
+                        arg=> {return Err(::schmargs::SchmargsError::NoSuchOption(arg));}
                     }
                 }
 

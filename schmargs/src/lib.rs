@@ -1,27 +1,50 @@
 #![cfg_attr(not(test), no_std)]
 #![forbid(unsafe_code)]
+use core::num::ParseIntError;
 
 pub trait SchmargsField<'a>: Sized {
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError>;
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>;
 }
 
-impl<'a> SchmargsField<'a> for u64 {
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError>
-    {
-        Ok(val.parse().unwrap())//.map_err(|_|SchmargsError::ParseError)
+macro_rules! impl_for_unsigned_int {
+    ($ty:ty) => {
+        impl<'a> SchmargsField<'a> for $ty {
+            fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>
+            {
+                if let Some(val) = val.strip_prefix("0x") {
+                    Ok(<$ty>::from_str_radix(val, 16)?)
+                } else {
+                    Ok(<$ty>::from_str_radix(val, 10)?)
+                }
+ 
+            }
+        }
     }
 }
+impl_for_unsigned_int!(u8);
+impl_for_unsigned_int!(u16);
+impl_for_unsigned_int!(u32);
+impl_for_unsigned_int!(u64);
+impl_for_unsigned_int!(u128);
+impl_for_unsigned_int!(usize);
 
 impl<'a> SchmargsField<'a> for &'a str {
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError> {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>> {
         Ok(val)
     }
 }
 
 #[derive(Debug)]
-pub enum SchmargsError {
-    ParseError,
+pub enum SchmargsError<'a> {
+    ParseInt(ParseIntError),
+    NoSuchOption(Argument<'a>),
     TooManyArguments,
+}
+
+impl<'a> From<ParseIntError> for SchmargsError<'a> {
+    fn from(error: ParseIntError) -> Self {
+        Self::ParseInt(error)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -86,7 +109,7 @@ pub trait Schmargs<'a>: Sized {
     fn description() -> &'static str {
         "Description to be written"
     }
-    fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError>;
+    fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>>;
 }
 
 #[cfg(test)]
@@ -100,7 +123,7 @@ mod tests {
     }
 
     impl<'a> Schmargs<'a> for Foo<'a> {
-        fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError> {
+        fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>> {
             let args = ArgumentIterator::from_args(args);
 
             // flags

@@ -60,3 +60,22 @@ fn with_generics() {
     assert_eq!(args.positional, "well_im_only");
     assert_eq!(args.positional2, 82);
 }
+
+#[test]
+fn unsigned_integers() {
+    #[derive(Schmargs)]
+    struct Args {
+        a: u8,
+        b: u16,
+        c: u32,
+        d: u64,
+        e: u128,
+    }
+
+    let args = Args::parse("0 1 2 0xfe 3141592".split_whitespace()).unwrap();
+    assert_eq!(args.a, 0);
+    assert_eq!(args.b, 1);
+    assert_eq!(args.c, 2);
+    assert_eq!(args.d, 0xfe);
+    assert_eq!(args.e, 3141592);
+}
