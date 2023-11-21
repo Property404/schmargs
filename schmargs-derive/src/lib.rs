@@ -1,9 +1,25 @@
 use proc_macro::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    self, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields, Lifetime,
+    self, Attribute, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields, Lifetime,
     LifetimeParam,
 };
+
+fn get_doc_comment_or_panic(attr: &[Attribute]) -> String {
+    let attr = attr.get(0).expect("Expected attribute (i.e. doc comment)");
+    let syn::Meta::NameValue(ref pair) = attr.meta else {
+        panic!("Expected name-value pair attribute (i.e. doc comment)");
+    };
+
+    let syn::Expr::Lit(ref value) = pair.value else {
+        panic!("Expected literal attribute value ( i.e. doc comment)");
+    };
+    let syn::Lit::Str(ref value) = value.lit else {
+        panic!("Expected str literal attribute value ( i.e. doc comment)");
+    };
+
+    value.value().trim().into()
+}
 
 #[proc_macro_derive(Schmargs)]
 pub fn schmargs_derive(input: TokenStream) -> TokenStream {
@@ -11,6 +27,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
     // that we can manipulate
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
+    let description = get_doc_comment_or_panic(&input.attrs);
     let default_lifetime = LifetimeParam::new(Lifetime::new("'a", Span::call_site().into()));
     let generics = input.generics.clone();
     let lifetime = generics.lifetimes().next().unwrap_or(&default_lifetime);
@@ -73,7 +90,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
     let gen = quote! {
         impl #impl_generics ::schmargs::Schmargs <#lifetime> for #name #struct_generics {
             fn description() -> &'static str {
-                unimplemented!("Fuck me")
+                #description
             }
 
             fn parse(args: impl Iterator<Item =  & #lifetime str>) -> Result<Self, ::schmargs::SchmargsError<#lifetime>> {

@@ -113,9 +113,7 @@ impl<'a, I: Iterator<Item = &'a str>> Iterator for ArgumentIterator<'a, I> {
 }
 
 pub trait Schmargs<'a>: Sized {
-    fn description() -> &'static str {
-        "Description to be written"
-    }
+    fn description() -> &'static str;
     fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>>;
 }
 
