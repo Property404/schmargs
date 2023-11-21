@@ -6,7 +6,7 @@ pub trait SchmargsField<'a>: Sized {
     fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>;
 }
 
-macro_rules! impl_for_unsigned_int {
+macro_rules! impl_on_integer {
     ($ty:ty) => {
         impl<'a> SchmargsField<'a> for $ty {
             fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>
@@ -21,12 +21,19 @@ macro_rules! impl_for_unsigned_int {
         }
     }
 }
-impl_for_unsigned_int!(u8);
-impl_for_unsigned_int!(u16);
-impl_for_unsigned_int!(u32);
-impl_for_unsigned_int!(u64);
-impl_for_unsigned_int!(u128);
-impl_for_unsigned_int!(usize);
+
+impl_on_integer!(u8);
+impl_on_integer!(u16);
+impl_on_integer!(u32);
+impl_on_integer!(u64);
+impl_on_integer!(u128);
+impl_on_integer!(usize);
+impl_on_integer!(i8);
+impl_on_integer!(i16);
+impl_on_integer!(i32);
+impl_on_integer!(i64);
+impl_on_integer!(i128);
+impl_on_integer!(isize);
 
 impl<'a> SchmargsField<'a> for &'a str {
     fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>> {

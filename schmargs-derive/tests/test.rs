@@ -79,3 +79,23 @@ fn unsigned_integers() {
     assert_eq!(args.d, 0xfe);
     assert_eq!(args.e, 3141592);
 }
+
+#[test]
+fn signed_integers() {
+    #[derive(Schmargs)]
+    struct Args {
+        a: i8,
+        b: i16,
+        c: i32,
+        d: i64,
+        e: i128,
+    }
+
+    let args = Args::parse("0 1 -- -2 0xfe -3141592".split_whitespace()).unwrap();
+
+    assert_eq!(args.a, 0);
+    assert_eq!(args.b, 1);
+    assert_eq!(args.c, -2);
+    assert_eq!(args.d, 0xfe);
+    assert_eq!(args.e, -3141592);
+}
