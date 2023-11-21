@@ -9,17 +9,15 @@ pub trait SchmargsField<'a>: Sized {
 macro_rules! impl_on_integer {
     ($ty:ty) => {
         impl<'a> SchmargsField<'a> for $ty {
-            fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>
-            {
+            fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>> {
                 if let Some(val) = val.strip_prefix("0x") {
                     Ok(<$ty>::from_str_radix(val, 16)?)
                 } else {
-                    Ok(<$ty>::from_str_radix(val, 10)?)
+                    Ok(val.parse()?)
                 }
- 
             }
         }
-    }
+    };
 }
 
 impl_on_integer!(u8);
@@ -46,7 +44,7 @@ pub enum SchmargsError<'a> {
     ParseInt(ParseIntError),
     NoSuchOption(Argument<'a>),
     TooManyArguments,
-    NotEnoughArguments
+    NotEnoughArguments,
 }
 
 impl<'a> From<ParseIntError> for SchmargsError<'a> {
@@ -59,21 +57,21 @@ impl<'a> From<ParseIntError> for SchmargsError<'a> {
 pub enum Argument<'a> {
     ShortFlag(char),
     LongFlag(&'a str),
-    Positional(&'a str)
+    Positional(&'a str),
 }
 
 pub struct ArgumentIterator<'a, I: Iterator<Item = &'a str>> {
     hit_double_dash: bool,
     shortflags: Option<core::str::Chars<'a>>,
-    args: I
+    args: I,
 }
 
-impl<'a, I: Iterator<Item = &'a str>>  ArgumentIterator<'a, I> {
+impl<'a, I: Iterator<Item = &'a str>> ArgumentIterator<'a, I> {
     pub fn from_args(args: I) -> Self {
         Self {
             hit_double_dash: false,
             shortflags: None,
-            args
+            args,
         }
     }
 }
@@ -115,12 +113,12 @@ impl<'a, I: Iterator<Item = &'a str>> Iterator for ArgumentIterator<'a, I> {
 
 pub trait Schmargs<'a>: Sized {
     fn description() -> &'static str;
-    fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>>;
+    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>>;
 }
 
 pub enum ArgsWithHelp<T: for<'a> Schmargs<'a>> {
     Help,
-    Args(T)
+    Args(T),
 }
 
 impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
@@ -128,13 +126,11 @@ impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
         T::description()
     }
 
-    fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>> {
+    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>> {
         match T::parse(args) {
-            Err(SchmargsError::NoSuchOption(Argument::LongFlag("help"))) => {
-                Ok(Self::Help)
-            },
+            Err(SchmargsError::NoSuchOption(Argument::LongFlag("help"))) => Ok(Self::Help),
             Ok(other) => Ok(Self::Args(other)),
-            Err(other) => Err(other)
+            Err(other) => Err(other),
         }
     }
 }

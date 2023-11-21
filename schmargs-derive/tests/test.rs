@@ -149,12 +149,12 @@ fn help_arg() {
     /// Automatic puppy kicker
     struct Args {
         /// How many puppies to kick
-        puppies: i8
+        puppies: i8,
     }
 
     let args = ArgsWithHelp::<Args>::parse("--help".split_whitespace()).unwrap();
     assert!(matches!(args, ArgsWithHelp::Help));
 
     let args = ArgsWithHelp::<Args>::parse("8".split_whitespace()).unwrap();
-    assert!(matches!(args, ArgsWithHelp::Args(Args{puppies: 8})));
+    assert!(matches!(args, ArgsWithHelp::Args(Args { puppies: 8 })));
 }

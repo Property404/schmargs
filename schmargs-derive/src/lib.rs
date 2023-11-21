@@ -1,8 +1,8 @@
 use proc_macro::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    self, Attribute, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields, Lifetime,
-    LifetimeParam,
+    self, parse_macro_input, spanned::Spanned, Attribute, Data, DataStruct, DeriveInput, Fields,
+    Lifetime, LifetimeParam,
 };
 
 fn get_doc_comment_or_panic(attr: &[Attribute]) -> String {
