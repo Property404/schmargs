@@ -6,7 +6,7 @@ use syn::{
 };
 
 fn get_doc_comment_or_panic(attr: &[Attribute]) -> String {
-    let attr = attr.get(0).expect("Expected attribute (i.e. doc comment)");
+    let attr = attr.first().expect("Expected attribute (i.e. doc comment)");
     let syn::Meta::NameValue(ref pair) = attr.meta else {
         panic!("Expected name-value pair attribute (i.e. doc comment)");
     };

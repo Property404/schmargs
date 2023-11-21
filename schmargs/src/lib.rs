@@ -117,3 +117,24 @@ pub trait Schmargs<'a>: Sized {
     fn description() -> &'static str;
     fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>>;
 }
+
+pub enum ArgsWithHelp<T: for<'a> Schmargs<'a>> {
+    Help,
+    Args(T)
+}
+
+impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
+    fn description() -> &'static str {
+        T::description()
+    }
+
+    fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>> {
+        match T::parse(args) {
+            Err(SchmargsError::NoSuchOption(Argument::LongFlag("help"))) => {
+                Ok(Self::Help)
+            },
+            Ok(other) => Ok(Self::Args(other)),
+            Err(other) => Err(other)
+        }
+    }
+}

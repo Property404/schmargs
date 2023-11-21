@@ -140,19 +140,21 @@ fn description() {
     assert_eq!(Args::description(), "Automatic puppy kicker");
 }
 
-// We're testing here that we don't error out with `--help`, even though we don't fill all
-// positional arguments
+// Test help arguments
 #[test]
 fn help_arg() {
+    use schmargs::ArgsWithHelp;
+
     #[derive(Schmargs)]
     /// Automatic puppy kicker
     struct Args {
-        /// Help text
-        help: bool,
         /// How many puppies to kick
-        _puppies: i8
+        puppies: i8
     }
 
-    let args = Args::parse("--help".split_whitespace()).unwrap();
-    assert!(args.help);
+    let args = ArgsWithHelp::<Args>::parse("--help".split_whitespace()).unwrap();
+    assert!(matches!(args, ArgsWithHelp::Help));
+
+    let args = ArgsWithHelp::<Args>::parse("8".split_whitespace()).unwrap();
+    assert!(matches!(args, ArgsWithHelp::Args(Args{puppies: 8})));
 }
