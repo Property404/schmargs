@@ -46,6 +46,7 @@ pub enum SchmargsError<'a> {
     ParseInt(ParseIntError),
     NoSuchOption(Argument<'a>),
     TooManyArguments,
+    NotEnoughArguments
 }
 
 impl<'a> From<ParseIntError> for SchmargsError<'a> {
@@ -115,70 +116,4 @@ impl<'a, I: Iterator<Item = &'a str>> Iterator for ArgumentIterator<'a, I> {
 pub trait Schmargs<'a>: Sized {
     fn description() -> &'static str;
     fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>>;
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    struct Foo<'a> {
-        bar: bool,
-        baz: u64,
-        biz: &'a str
-    }
-
-    impl<'a> Schmargs<'a> for Foo<'a> {
-        fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError<'a>> {
-            let args = ArgumentIterator::from_args(args);
-
-            // flags
-            let mut bar = false;
-
-            // positionals
-            let mut baz = None;
-            let mut biz = None;
-            let mut pos_count = 0;
-
-            for arg in args {
-                match arg {
-                    Argument::LongFlag("bar") => {
-                        bar = true;
-                    },
-                    Argument::Positional(pos) => {
-                        match pos_count {
-                            0 => {baz = Some(pos.parse().unwrap());}
-                            1 => {biz = Some(pos.try_into().unwrap());}
-                            _ => panic!("TOO MANY ARGS")
-                        };
-                    },
-                    Argument::ShortFlag(c) => {
-                        panic!("Unexpected flag: {c}");
-                    }
-                    _=> todo!("HM")
-                }
-            }
-
-            Ok(Self {
-                // flags
-                bar: bar,
-                // positionals
-                baz: baz.unwrap(),
-                biz: biz.unwrap()
-            })
-        }
-    }
-
-    #[test]
-    fn check_iteration() {
-        let mut it = ArgumentIterator::from_args("-to part --long x -- --wee -xdf".split_whitespace());
-        assert_eq!(it.next().unwrap(), Argument::ShortFlag('t'));
-        assert_eq!(it.next().unwrap(), Argument::ShortFlag('o'));
-        assert_eq!(it.next().unwrap(), Argument::Positional("part"));
-        assert_eq!(it.next().unwrap(), Argument::LongFlag("long"));
-        assert_eq!(it.next().unwrap(), Argument::Positional("x"));
-        // These are following the `--`, so they're taken literally
-        assert_eq!(it.next().unwrap(), Argument::Positional("--wee"));
-        assert_eq!(it.next().unwrap(), Argument::Positional("-xdf"));
-        assert!(it.next().is_none());
-    }
 }

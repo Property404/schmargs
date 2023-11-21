@@ -93,7 +93,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
                 #description
             }
 
-            fn parse(args: impl Iterator<Item =  & #lifetime str>) -> Result<Self, ::schmargs::SchmargsError<#lifetime>> {
+            fn parse(args: impl ::core::iter::Iterator<Item =  & #lifetime str>) -> ::core::result::Result<Self, ::schmargs::SchmargsError<#lifetime>> {
                 let args = ::schmargs::ArgumentIterator::from_args(args);
 
                 // flags
@@ -120,11 +120,11 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
                             #(
                                 #num => {#arg_positional2 = Some(::schmargs::SchmargsField::parse_str(value)?);},
                             )*
-                                _ => {return Err(::schmargs::SchmargsError::TooManyArguments);}
+                                _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::TooManyArguments);}
                             }
                             pos_count += 1;
                         },
-                        arg=> {return Err(::schmargs::SchmargsError::NoSuchOption(arg));}
+                        arg=> {::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(arg))?;}
                     }
                 }
 
@@ -135,7 +135,9 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
                     )*
                     // positionals
                     #(
-                        #arg_positional3: #arg_positional3.unwrap(),
+                        #arg_positional3: #arg_positional3.ok_or(
+                            ::schmargs::SchmargsError::NotEnoughArguments
+                        )?,
                     )*
                 })
             }
