@@ -1,6 +1,40 @@
 #![cfg_attr(not(test), no_std)]
 #![forbid(unsafe_code)]
 
+pub trait SchmargsField<'a>: Sized {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError>;
+}
+
+pub trait StandardInteger: Sized + core::str::FromStr {}
+
+impl StandardInteger for u8{}
+impl StandardInteger for i8{}
+impl StandardInteger for u16{}
+impl StandardInteger for i16{}
+impl StandardInteger for u32{}
+impl StandardInteger for i32{}
+impl StandardInteger for u64{}
+impl StandardInteger for i64{}
+impl StandardInteger for u128{}
+impl StandardInteger for i128{}
+impl StandardInteger for usize{}
+impl StandardInteger for isize{}
+
+impl<'a, T: StandardInteger> SchmargsField<'a> for T
+        where <Self as core::str::FromStr>::Err: core::fmt::Debug
+{
+    fn parse_str(val: &'a str) -> Result<T, SchmargsError>
+    {
+        Ok(val.parse().unwrap())//.map_err(|_|SchmargsError::ParseError)
+    }
+}
+
+impl<'a> SchmargsField<'a> for &'a str {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError> {
+        Ok(val)
+    }
+}
+
 #[derive(Debug)]
 pub enum SchmargsError {
     ParseError,

@@ -60,7 +60,7 @@ pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
                         ::schmargs::Argument::Positional(value) => {
                             match pos_count {
                             #(
-                                #num => {#arg_positional2 = Some(value.parse().unwrap());},
+                                #num => {#arg_positional2 = Some(::schmargs::SchmargsField::parse_str(value)?);},
                             )*
                                 _ => {return Err(::schmargs::SchmargsError::TooManyArguments);}
                             }
