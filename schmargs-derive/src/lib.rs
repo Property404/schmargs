@@ -1,43 +1,86 @@
-use proc_macro::TokenStream;
+use proc_macro::{Span, TokenStream};
 use quote::quote;
-use syn::{self, spanned::Spanned, Fields, DataStruct, Data, parse_macro_input, DeriveInput};
+use syn::{
+    self, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields, Lifetime,
+    LifetimeParam,
+};
 
 #[proc_macro_derive(Schmargs)]
-pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
+pub fn schmargs_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
-    let generics = input.generics;
+    let default_lifetime = LifetimeParam::new(Lifetime::new("'a", Span::call_site().into()));
+    let generics = input.generics.clone();
+    let lifetime = generics.lifetimes().next().unwrap_or(&default_lifetime);
 
+    let impl_generics = if input.generics.clone().lt_token.is_some() {
+        quote! { #generics}
+    } else {
+        quote! { <#lifetime> }
+    };
 
+    let struct_generics = {
+        let mut gen = quote! { < };
+        let mut first = true;
+        for generic in generics.lifetimes() {
+            if first {
+                first = false;
+            } else {
+                gen.extend(quote! { , });
+            };
+            gen.extend(quote! { #generic });
+        }
+        for generic in generics.type_params() {
+            let generic = &generic.ident;
+            if first {
+                first = false;
+            } else {
+                gen.extend(quote! { , });
+            };
+            gen.extend(quote! { #generic });
+        }
+        gen.extend(quote! { > });
+        gen
+    };
 
     let fields = match &input.data {
-        Data::Struct(DataStruct { fields: Fields::Named(fields), .. }) => &fields.named,
+        Data::Struct(DataStruct {
+            fields: Fields::Named(fields),
+            ..
+        }) => &fields.named,
         _ => panic!("expected a struct with named fields"),
     };
 
+    let arg_flag = fields
+        .iter()
+        .filter(|field| field.ty.span().source_text().unwrap() == "bool")
+        .map(|field| &field.ident);
+    let arg_positional = fields
+        .iter()
+        .filter(|field| field.ty.span().source_text().unwrap() != "bool")
+        .map(|field| &field.ident);
 
-    let arg_flag = fields.iter().filter(|field|field.ty.span().source_text().unwrap() == "bool").map(|field| &field.ident);
-    let arg_positional = fields.iter().filter(|field|field.ty.span().source_text().unwrap() != "bool").map(|field| &field.ident);
-
-    
     let arg_flag2 = arg_flag.clone();
     let arg_positional2 = arg_positional.clone();
 
     let arg_flag3 = arg_flag.clone();
     let arg_positional3 = arg_positional.clone();
 
-    let num = arg_positional3.clone().enumerate().map(|(i,_)|i);
+    let num = arg_positional3.clone().enumerate().map(|(i, _)| i);
 
+    //println!("IMPL: {:?}", pretty_print(&impl_generics));
+    //println!("LIFETIME: {:?}", &quote! {#lifetime});
+    println!("STRUCT: {:?}", quote! {#struct_generics});
 
     let gen = quote! {
-        impl<'a> ::schmargs::Schmargs<'a> for #name #generics {
+        impl #impl_generics ::schmargs::Schmargs <#lifetime> for #name #struct_generics {
             fn description() -> &'static str {
                 unimplemented!("Fuck me")
             }
 
-            fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, ::schmargs::SchmargsError> {
+            fn parse(args: impl Iterator<Item =  & #lifetime str>) -> Result<Self, ::schmargs::SchmargsError> {
                 let args = ::schmargs::ArgumentIterator::from_args(args);
 
                 // flags
