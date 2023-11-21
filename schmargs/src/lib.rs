@@ -6,6 +6,7 @@ pub enum SchmargsError {
     ParseError
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Argument<'a> {
     ShortFlag(char),
     LongFlag(&'a str),
@@ -66,4 +67,22 @@ impl<'a, I: Iterator<Item = &'a str>> Iterator for ArgumentIterator<'a, I> {
 pub trait Schmargs<'a>: Sized {
     fn description() -> &'static str;
     fn parse(args: impl Iterator<Item =  &'a str>) -> Result<Self, SchmargsError>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn check_iteration() {
+        let mut it = ArgumentIterator::from_args("-to part --long x -- --wee -xdf".split_whitespace());
+        assert_eq!(it.next().unwrap(), Argument::ShortFlag('t'));
+        assert_eq!(it.next().unwrap(), Argument::ShortFlag('o'));
+        assert_eq!(it.next().unwrap(), Argument::Positional("part"));
+        assert_eq!(it.next().unwrap(), Argument::LongFlag("long"));
+        assert_eq!(it.next().unwrap(), Argument::Positional("x"));
+        // These are following the `--`, so they're taken literally
+        assert_eq!(it.next().unwrap(), Argument::Positional("--wee"));
+        assert_eq!(it.next().unwrap(), Argument::Positional("-xdf"));
+        assert!(it.next().is_none());
+    }
 }
