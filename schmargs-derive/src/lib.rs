@@ -8,6 +8,8 @@ pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
     // that we can manipulate
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
+    let generics = input.generics;
+
 
 
     let fields = match &input.data {
@@ -30,7 +32,7 @@ pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
 
 
     let gen = quote! {
-        impl<'a> ::schmargs::Schmargs<'a> for #name {
+        impl<'a> ::schmargs::Schmargs<'a> for #name #generics {
             fn description() -> &'static str {
                 unimplemented!("Fuck me")
             }
