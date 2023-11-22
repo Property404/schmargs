@@ -140,7 +140,6 @@ fn description() {
     assert_eq!(Args::description(), "Automatic puppy kicker");
 }
 
-// Test help arguments
 #[test]
 fn help_arg() {
     use schmargs::ArgsWithHelp;
@@ -157,4 +156,21 @@ fn help_arg() {
 
     let args = ArgsWithHelp::<Args>::parse("8".split_whitespace()).unwrap();
     assert!(matches!(args, ArgsWithHelp::Args(Args { puppies: 8 })));
+}
+
+#[test]
+fn short_flags() {
+    #[derive(Schmargs)]
+    /// Automatic puppy kicker
+    struct Args {
+        /// Kick adult dogs, too
+        #[arg(short = 'a')]
+        adults: bool,
+        /// How many puppies to kick
+        puppies: i8,
+    }
+
+    let args = Args::parse("-a 8".split_whitespace()).unwrap();
+    assert!(args.adults);
+    assert_eq!(args.puppies, 8);
 }

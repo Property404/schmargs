@@ -21,7 +21,7 @@ fn get_doc_comment_or_panic(attr: &[Attribute]) -> String {
     value.value().trim().into()
 }
 
-#[proc_macro_derive(Schmargs)]
+#[proc_macro_derive(Schmargs, attributes(arg))]
 pub fn schmargs_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
