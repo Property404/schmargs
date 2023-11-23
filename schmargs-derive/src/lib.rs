@@ -28,6 +28,19 @@ struct AttributeAggregate {
     arg: Option<ArgAttribute>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ArgKind {
+    Flag,
+    Positional,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Arg {
+    attr: AttributeAggregate,
+    ident: proc_macro2::Ident,
+    kind: ArgKind,
+}
+
 fn parse_attribute(attr: &Attribute) -> SchmargsAttribute {
     match attr.meta {
         syn::Meta::List(ref list) => {
@@ -165,14 +178,21 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
 
 fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
     let fields = &fields.named;
-    let arg_flags: Vec<_> = fields
+
+    let args: Vec<_> = fields
         .iter()
-        .filter(|field| {
-            parse_attributes(&field.attrs);
-            field.ty.span().source_text().unwrap() == "bool"
+        .map(|field| {
+            let kind = if field.ty.span().source_text().unwrap() == "bool" {
+                ArgKind::Flag
+            } else {
+                ArgKind::Positional
+            };
+            let attr = parse_attributes(&field.attrs);
+            let ident = field.ident.clone().unwrap().clone();
+            Arg { kind, attr, ident }
         })
-        .map(|field| (parse_attributes(&field.attrs), &field.ident))
         .collect();
+
     let arg_positionals: Vec<_> = fields
         .iter()
         .filter(|field| field.ty.span().source_text().unwrap() != "bool")
@@ -183,33 +203,37 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
         let args = ::schmargs::ArgumentIterator::from_args(args);
     };
 
-    for (_, arg) in &arg_flags {
-        body.extend(quote! {
-            let mut #arg = false;
-        });
-    }
-
-    for arg in &arg_positionals {
-        body.extend(quote! {
-            let mut #arg = ::core::option::Option::None;
+    for arg in &args {
+        let ident = &arg.ident;
+        body.extend(match arg.kind {
+            ArgKind::Flag => {
+                quote! {
+                    let mut #ident = false;
+                }
+            }
+            ArgKind::Positional => {
+                quote! {
+                    let mut #ident = ::core::option::Option::None;
+                }
+            }
         });
     }
 
     let match_body = {
-        let mut gen: proc_macro2::TokenStream = Default::default();
-        for (attr, arg) in &arg_flags {
-            gen.extend(quote! {
-                ::schmargs::Argument::LongFlag(stringify!(#arg)) => {
-                    #arg = true;
+        let mut body: proc_macro2::TokenStream = Default::default();
+        for arg in args.iter().filter(|a| a.kind == ArgKind::Flag) {
+            let ident = &arg.ident;
+            body.extend(quote! {
+                ::schmargs::Argument::LongFlag(stringify!(#ident)) => {
+                    #ident = true;
                 },
             });
-            if let Some(ArgAttribute {
-                short: Some(Some(short)),
-            }) = attr.arg
-            {
-                gen.extend(quote! {
+            if let Some(ArgAttribute { short: Some(short) }) = arg.attr.arg {
+                let short = short.unwrap_or_else(|| ident.to_string().chars().next().unwrap());
+
+                body.extend(quote! {
                     ::schmargs::Argument::ShortFlag(#short) => {
-                        #arg = true;
+                        #ident = true;
                     },
                 });
             }
@@ -218,7 +242,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
         let (num, positional): (Vec<usize>, Vec<&Option<proc_macro2::Ident>>) =
             arg_positionals.iter().enumerate().unzip();
         let (num, positional) = (num.into_iter(), positional.into_iter());
-        gen.extend(quote! {
+        body.extend(quote! {
             ::schmargs::Argument::Positional(value) => {
                 match pos_count {
                 #(
@@ -231,23 +255,23 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
             arg=> {::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(arg))?;}
         });
 
-        gen
+        body
     };
 
     let return_body = {
         let mut body: proc_macro2::TokenStream = Default::default();
 
-        for (_, arg) in arg_flags {
-            body.extend(quote! {
-                #arg,
-            });
-        }
-
-        for arg in arg_positionals {
-            body.extend(quote! {
-                #arg: #arg.ok_or(
-                    ::schmargs::SchmargsError::NotEnoughArguments
-                )?,
+        for arg in &args {
+            let ident = &arg.ident;
+            body.extend(match arg.kind {
+                ArgKind::Flag => quote! {
+                    #ident,
+                },
+                ArgKind::Positional => quote! {
+                    #ident: #ident.ok_or(
+                        ::schmargs::SchmargsError::NotEnoughArguments
+                    )?,
+                },
             });
         }
 
