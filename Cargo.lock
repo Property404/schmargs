@@ -3,16 +3,6 @@
 version = 3
 
 [[package]]
-name = "prettyplease"
-version = "0.2.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae005bd773ab59b4725093fd7df83fd7892f7d8eafb48dbd7de6e024e4215f9d"
-dependencies = [
- "proc-macro2",
- "syn",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -38,7 +28,6 @@ version = "0.0.0"
 name = "schmargs-derive"
 version = "0.0.0"
 dependencies = [
- "prettyplease",
  "proc-macro2",
  "quote",
  "schmargs",

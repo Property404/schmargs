@@ -1,24 +1,91 @@
+#![allow(unused_imports)]
 use proc_macro::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
     self, parse_macro_input, spanned::Spanned, Attribute, Data, DataStruct, DeriveInput, Fields,
-    Lifetime, LifetimeParam,
+    Lifetime, LifetimeParam, Token,
 };
 
-fn get_doc_comment_or_panic(attr: &[Attribute]) -> String {
-    let attr = attr.first().expect("Expected attribute (i.e. doc comment)");
-    let syn::Meta::NameValue(ref pair) = attr.meta else {
-        panic!("Expected name-value pair attribute (i.e. doc comment)");
-    };
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum SchmargsAttribute {
+    ArgAttribute(ArgAttribute),
+    DocAttribute(DocAttribute),
+}
 
-    let syn::Expr::Lit(ref value) = pair.value else {
-        panic!("Expected literal attribute value ( i.e. doc comment)");
-    };
-    let syn::Lit::Str(ref value) = value.lit else {
-        panic!("Expected str literal attribute value ( i.e. doc comment)");
-    };
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ArgAttribute {
+    short: Option<Option<char>>,
+}
 
-    value.value().trim().into()
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DocAttribute {
+    value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AttributeAggregate {
+    doc: DocAttribute,
+    arg: Option<ArgAttribute>,
+}
+
+fn parse_attribute(attr: &Attribute) -> SchmargsAttribute {
+    match attr.meta {
+        syn::Meta::List(ref list) => {
+            assert!(attr.path().is_ident("arg"));
+            let tok: syn::MetaNameValue = list.parse_args().unwrap();
+            if tok.path.is_ident("short") {
+                let syn::Expr::Lit(lit) = tok.value else {
+                    panic!("'short' argument expected literal");
+                };
+                let syn::Lit::Char(lit) = lit.lit else {
+                    panic!("'short' argument expected character literal");
+                };
+                return SchmargsAttribute::ArgAttribute(ArgAttribute {
+                    short: Some(Some(lit.value())),
+                });
+            }
+            panic!("Unexpected argument to 'arg' attribute");
+        }
+        syn::Meta::NameValue(ref pair) => {
+            assert!(attr.path().is_ident("doc"));
+            let syn::Expr::Lit(ref value) = pair.value else {
+                panic!("Expected literal attribute value ( i.e. doc comment)");
+            };
+            let syn::Lit::Str(ref value) = value.lit else {
+                panic!("Expected str literal attribute value ( i.e. doc comment)");
+            };
+            return SchmargsAttribute::DocAttribute(DocAttribute {
+                value: value.value().trim().into(),
+            });
+        }
+        _ => panic!("Expected name-value pair attribute (i.e. doc comment)"),
+    }
+}
+
+fn parse_attributes(attrs: &[Attribute]) -> AttributeAggregate {
+    let mut doc = None;
+    let mut arg = None;
+    for attr in attrs {
+        match parse_attribute(attr) {
+            SchmargsAttribute::DocAttribute(attr) => {
+                if doc.is_some() {
+                    panic!("Was not expecting two doc attributes!");
+                }
+                doc = Some(attr);
+            }
+            SchmargsAttribute::ArgAttribute(attr) => {
+                if arg.is_some() {
+                    panic!("Was not expecting two arg attributes!");
+                }
+                arg = Some(attr);
+            }
+        }
+    }
+
+    AttributeAggregate {
+        doc: doc.expect("Missing doc attribute"),
+        arg,
+    }
 }
 
 #[proc_macro_derive(Schmargs, attributes(arg))]
@@ -27,7 +94,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
     // that we can manipulate
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
-    let description = get_doc_comment_or_panic(&input.attrs);
+    let description = parse_attributes(&input.attrs).doc.value;
     let default_lifetime = LifetimeParam::new(Lifetime::new("'a", Span::call_site().into()));
     let generics = input.generics.clone();
     let lifetime = generics.lifetimes().next().unwrap_or(&default_lifetime);
@@ -66,83 +133,131 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
         Data::Struct(DataStruct {
             fields: Fields::Named(fields),
             ..
-        }) => &fields.named,
+        }) => fields.clone(),
         _ => panic!("expected a struct with named fields"),
     };
 
-    let arg_flag = fields
-        .iter()
-        .filter(|field| field.ty.span().source_text().unwrap() == "bool")
-        .map(|field| &field.ident);
-    let arg_positional = fields
-        .iter()
-        .filter(|field| field.ty.span().source_text().unwrap() != "bool")
-        .map(|field| &field.ident);
-
-    let arg_flag2 = arg_flag.clone();
-    let arg_positional2 = arg_positional.clone();
-
-    let arg_flag3 = arg_flag.clone();
-    let arg_positional3 = arg_positional.clone();
-
-    let num = arg_positional3.clone().enumerate().map(|(i, _)| i);
+    let body = impl_fn_body(&fields);
 
     let gen = quote! {
         impl #impl_generics ::schmargs::Schmargs <#lifetime> for #name #struct_generics {
             fn description() -> &'static str {
                 #description
             }
-
             fn parse(args: impl ::core::iter::Iterator<Item =  & #lifetime str>) -> ::core::result::Result<Self, ::schmargs::SchmargsError<#lifetime>> {
-                let args = ::schmargs::ArgumentIterator::from_args(args);
-
-                // flags
-                #(
-                    let mut #arg_flag = false;
-                )*
-
-                // positionasl
-                #(
-                    let mut #arg_positional = ::core::option::Option::None;
-                )*
-
-                let mut pos_count = 0;
-
-                for arg in args {
-                    match arg {
-                        #(
-                            ::schmargs::Argument::LongFlag(stringify!(#arg_flag2)) => {
-                                #arg_flag2 = true;
-                            },
-                        )*
-                        ::schmargs::Argument::Positional(value) => {
-                            match pos_count {
-                            #(
-                                #num => {#arg_positional2 = Some(::schmargs::SchmargsField::parse_str(value)?);},
-                            )*
-                                _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::TooManyArguments);}
-                            }
-                            pos_count += 1;
-                        },
-                        arg=> {::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(arg))?;}
-                    }
-                }
-
-                Ok(Self {
-                    // flags
-                    #(
-                        #arg_flag3,
-                    )*
-                    // positionals
-                    #(
-                        #arg_positional3: #arg_positional3.ok_or(
-                            ::schmargs::SchmargsError::NotEnoughArguments
-                        )?,
-                    )*
-                })
+                #body
             }
         }
     };
 
     gen.into()
+}
+
+fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
+    let fields = &fields.named;
+    let arg_flags: Vec<_> = fields
+        .iter()
+        .filter(|field| {
+            parse_attributes(&field.attrs);
+            field.ty.span().source_text().unwrap() == "bool"
+        })
+        .map(|field| (parse_attributes(&field.attrs), &field.ident))
+        .collect();
+    let arg_positionals: Vec<_> = fields
+        .iter()
+        .filter(|field| field.ty.span().source_text().unwrap() != "bool")
+        .map(|field| &field.ident)
+        .collect();
+
+    let mut body = quote! {
+        let args = ::schmargs::ArgumentIterator::from_args(args);
+    };
+
+    for (_, arg) in &arg_flags {
+        body.extend(quote! {
+            let mut #arg = false;
+        });
+    }
+
+    for arg in &arg_positionals {
+        body.extend(quote! {
+            let mut #arg = ::core::option::Option::None;
+        });
+    }
+
+    let match_body = {
+        let mut gen: proc_macro2::TokenStream = Default::default();
+        for (attr, arg) in &arg_flags {
+            gen.extend(quote! {
+                ::schmargs::Argument::LongFlag(stringify!(#arg)) => {
+                    #arg = true;
+                },
+            });
+            if let Some(ArgAttribute {
+                short: Some(Some(short)),
+            }) = attr.arg
+            {
+                gen.extend(quote! {
+                    ::schmargs::Argument::ShortFlag(#short) => {
+                        #arg = true;
+                    },
+                });
+            }
+        }
+
+        let (num, positional): (Vec<usize>, Vec<&Option<proc_macro2::Ident>>) =
+            arg_positionals.iter().enumerate().unzip();
+        let (num, positional) = (num.into_iter(), positional.into_iter());
+        gen.extend(quote! {
+            ::schmargs::Argument::Positional(value) => {
+                match pos_count {
+                #(
+                    #num => {#positional = Some(::schmargs::SchmargsField::parse_str(value)?);},
+                )*
+                    _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::TooManyArguments);}
+                }
+                pos_count += 1;
+            },
+            arg=> {::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(arg))?;}
+        });
+
+        gen
+    };
+
+    let return_body = {
+        let mut body: proc_macro2::TokenStream = Default::default();
+
+        for (_, arg) in arg_flags {
+            body.extend(quote! {
+                #arg,
+            });
+        }
+
+        for arg in arg_positionals {
+            body.extend(quote! {
+                #arg: #arg.ok_or(
+                    ::schmargs::SchmargsError::NotEnoughArguments
+                )?,
+            });
+        }
+
+        body
+    };
+
+    body.extend(quote! {
+
+        let mut pos_count = 0;
+
+        for arg in args {
+            match arg {
+                #match_body
+            }
+        }
+
+        Ok(Self {
+            #return_body
+        })
+    });
+
+    body
 }
