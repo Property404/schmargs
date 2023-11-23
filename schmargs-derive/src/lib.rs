@@ -32,19 +32,29 @@ fn parse_attribute(attr: &Attribute) -> SchmargsAttribute {
     match attr.meta {
         syn::Meta::List(ref list) => {
             assert!(attr.path().is_ident("arg"));
-            let tok: syn::MetaNameValue = list.parse_args().unwrap();
-            if tok.path.is_ident("short") {
-                let syn::Expr::Lit(lit) = tok.value else {
-                    panic!("'short' argument expected literal");
-                };
-                let syn::Lit::Char(lit) = lit.lit else {
-                    panic!("'short' argument expected character literal");
-                };
-                return SchmargsAttribute::ArgAttribute(ArgAttribute {
-                    short: Some(Some(lit.value())),
-                });
+
+            if let Ok(path) = list.parse_args::<syn::Path>() {
+                if path.is_ident("short") {
+                    return SchmargsAttribute::ArgAttribute(ArgAttribute { short: Some(None) });
+                } else {
+                    panic!("Unknown attribute argument: {:?}", path.get_ident());
+                }
+            } else {
+                let tok: syn::MetaNameValue = list.parse_args().unwrap();
+                if tok.path.is_ident("short") {
+                    let syn::Expr::Lit(lit) = tok.value else {
+                        panic!("'short' argument expected literal");
+                    };
+                    let syn::Lit::Char(lit) = lit.lit else {
+                        panic!("'short' argument expected character literal");
+                    };
+                    return SchmargsAttribute::ArgAttribute(ArgAttribute {
+                        short: Some(Some(lit.value())),
+                    });
+                } else {
+                    panic!("Unknown attribute argument: {:?}", tok.path.get_ident());
+                }
             }
-            panic!("Unexpected argument to 'arg' attribute");
         }
         syn::Meta::NameValue(ref pair) => {
             assert!(attr.path().is_ident("doc"));

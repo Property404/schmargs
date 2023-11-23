@@ -174,3 +174,20 @@ fn short_flags() {
     assert!(args.adults);
     assert_eq!(args.puppies, 8);
 }
+
+#[test]
+fn short_flag_default() {
+    #[derive(Schmargs)]
+    /// Automatic puppy kicker
+    struct Args {
+        /// Kick adult dogs, too
+        #[arg(short)]
+        adults: bool,
+        /// How many puppies to kick
+        puppies: i8,
+    }
+
+    let args = Args::parse("-a 8".split_whitespace()).unwrap();
+    assert!(args.adults);
+    assert_eq!(args.puppies, 8);
+}
