@@ -280,7 +280,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
             }
             ArgKind::Positional | ArgKind::Option => {
                 quote! {
-                    let mut #ident = ::schmargs::SchmargsField::as_option();
+                    let mut #ident = ::schmargs::SchmargsField::<&str>::as_option();
                 }
             }
         });
@@ -304,7 +304,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                     body.extend(quote! { {
                                 match args.next() {
                                     Some(::schmargs::Argument::Positional(value)) => {
-                                        #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
+                                        #ident = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
                                 }
@@ -324,7 +324,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                     body.extend(quote! { {
                                 match args.next() {
                                     Some(::schmargs::Argument::Positional(value)) => {
-                                        #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
+                                        #ident = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
                                 }
@@ -346,7 +346,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                 ::schmargs::Argument::Positional(value) => {
                     match pos_count {
                     #(
-                        #num => {#positional = Some(::schmargs::SchmargsField::parse_str(value)?);},
+                        #num => {#positional = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);},
                     )*
                         _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::UnexpectedValue(value));}
                     }

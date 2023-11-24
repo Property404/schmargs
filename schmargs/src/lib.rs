@@ -82,8 +82,9 @@ pub trait SchmargsField<T: AsRef<str>>: Sized {
 
 macro_rules! impl_on_integer {
     ($ty:ty) => {
-        impl<'a> SchmargsField<&'a str> for $ty {
-            fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
+        impl<T: AsRef<str>> SchmargsField<T> for $ty {
+            fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
+                let val = val.as_ref();
                 if let Some(val) = val.strip_prefix("0x") {
                     Ok(<$ty>::from_str_radix(val, 16)?)
                 } else {
@@ -113,8 +114,8 @@ impl<'a> SchmargsField<&'a str> for &'a str {
     }
 }
 
-impl<'a, T: SchmargsField<&'a str>> SchmargsField<&'a str> for Option<T> {
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
+impl<U: AsRef<str>, T: SchmargsField<U>> SchmargsField<U> for Option<T> {
+    fn parse_str(val: U) -> Result<Self, SchmargsError<U>> {
         Ok(Some(T::parse_str(val)?))
     }
 
@@ -131,7 +132,7 @@ pub enum SchmargsError<T: AsRef<str>> {
     ExpectedValue(&'static str),
 }
 
-impl<'a> From<ParseIntError> for SchmargsError<&'a str> {
+impl<T: AsRef<str>> From<ParseIntError> for SchmargsError<T> {
     fn from(error: ParseIntError) -> Self {
         Self::ParseInt(error)
     }
