@@ -319,18 +319,28 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
             .map(|a| a.ident.clone())
             .enumerate()
             .unzip();
-        let (num, positional) = (num.into_iter(), positional.into_iter());
+        if !positional.is_empty() {
+            let (num, positional) = (num.into_iter(), positional.into_iter());
+            body.extend(quote! {
+                ::schmargs::utils::Argument::Positional(value) => {
+                    match pos_count {
+                    #(
+                        #num => {#positional = Some(::schmargs::SchmargsField::parse_str(value)?);},
+                    )*
+                        _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::UnexpectedValue(value));}
+                    }
+                    pos_count += 1;
+                },
+            });
+        } else {
+            body.extend(quote! {
+                ::schmargs::utils::Argument::Positional(val) => {
+                    ::core::result::Result::Err(::schmargs::SchmargsError::UnexpectedValue(val))?;
+                },
+            });
+        };
         body.extend(quote! {
-            ::schmargs::utils::Argument::Positional(value) => {
-                match pos_count {
-                #(
-                    #num => {#positional = Some(::schmargs::SchmargsField::parse_str(value)?);},
-                )*
-                    _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::TooManyArguments);}
-                }
-                pos_count += 1;
-            },
-            arg=> {::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(arg))?;}
+            arg => {::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(arg))?;}
         });
 
         body

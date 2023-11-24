@@ -90,7 +90,7 @@ impl<'a, T: SchmargsField<'a>> SchmargsField<'a> for Option<T> {
 pub enum SchmargsError<'a> {
     ParseInt(ParseIntError),
     NoSuchOption(Argument<'a>),
-    TooManyArguments,
+    UnexpectedValue(&'a str),
     ExpectedValue(&'static str),
 }
 
