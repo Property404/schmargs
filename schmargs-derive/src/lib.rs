@@ -34,6 +34,7 @@ struct AttributeAggregate {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum ArgKind {
     Flag,
+    Option,
     Positional,
 }
 
@@ -41,7 +42,21 @@ enum ArgKind {
 struct Arg {
     attr: AttributeAggregate,
     ident: proc_macro2::Ident,
-    kind: ArgKind,
+    is_bool: bool,
+}
+
+impl Arg {
+    fn kind(&self) -> ArgKind {
+        if self.attr.arg.is_some() {
+            if self.is_bool {
+                ArgKind::Flag
+            } else {
+                ArgKind::Option
+            }
+        } else {
+            ArgKind::Positional
+        }
+    }
 }
 
 fn parse_attribute(attr: &Attribute) -> SchmargsAttribute {
@@ -211,14 +226,14 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
     let args: Vec<_> = fields
         .iter()
         .map(|field| {
-            let kind = if field.ty.span().source_text().unwrap() == "bool" {
-                ArgKind::Flag
-            } else {
-                ArgKind::Positional
-            };
+            let is_bool = field.ty.span().source_text().unwrap() == "bool";
             let attr = parse_attributes(&field.attrs);
             let ident = field.ident.clone().unwrap().clone();
-            Arg { kind, attr, ident }
+            Arg {
+                is_bool,
+                attr,
+                ident,
+            }
         })
         .collect();
 
@@ -229,18 +244,18 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
         .collect();
 
     let mut body = quote! {
-        let args = ::schmargs::ArgumentIterator::from_args(args);
+        let mut args = ::schmargs::ArgumentIterator::from_args(args);
     };
 
     for arg in &args {
         let ident = &arg.ident;
-        body.extend(match arg.kind {
+        body.extend(match arg.kind() {
             ArgKind::Flag => {
                 quote! {
                     let mut #ident = false;
                 }
             }
-            ArgKind::Positional => {
+            ArgKind::Positional | ArgKind::Option => {
                 quote! {
                     let mut #ident = ::core::option::Option::None;
                 }
@@ -250,7 +265,10 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
 
     let match_body = {
         let mut body: proc_macro2::TokenStream = Default::default();
-        for arg in args.iter().filter(|a| a.kind == ArgKind::Flag) {
+        for arg in args
+            .iter()
+            .filter(|a| a.kind() == ArgKind::Flag || a.kind() == ArgKind::Option)
+        {
             if let Some(ArgAttribute { short, long, .. }) = &arg.attr.arg {
                 let ident = &arg.ident;
                 if let Some(short) = short {
@@ -258,22 +276,46 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                         Literal::character(ident.to_string().chars().next().unwrap())
                     });
 
-                    body.extend(quote! {
-                        ::schmargs::Argument::ShortFlag(#short) => {
-                            #ident = true;
-                        },
-                    });
+                    body.extend(quote! { ::schmargs::Argument::ShortFlag(#short) =>});
+                    if arg.kind() == ArgKind::Flag {
+                        body.extend(quote! { {
+                                #ident = true;
+                            },
+                        });
+                    } else {
+                        body.extend(quote! { {
+                                match args.next() {
+                                    Some(::schmargs::Argument::Positional(value)) => {
+                                        #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
+                                    },
+                                    _=> {return Err(::schmargs::SchmargsError::ExpectedValue);}
+                                }
+                            },
+                        });
+                    }
                 }
 
                 if let Some(long) = long {
                     let long = long
                         .clone()
                         .unwrap_or_else(|| Literal::string(&ident.to_string()));
-                    body.extend(quote! {
-                        ::schmargs::Argument::LongFlag(#long) => {
-                            #ident = true;
-                        },
-                    });
+                    body.extend(quote! { ::schmargs::Argument::LongFlag(#long) =>});
+                    if arg.kind() == ArgKind::Flag {
+                        body.extend(quote! { {
+                                #ident = true;
+                            },
+                        });
+                    } else {
+                        body.extend(quote! { {
+                                match args.next() {
+                                    Some(::schmargs::Argument::Positional(value)) => {
+                                        #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
+                                    },
+                                    _=> {return Err(::schmargs::SchmargsError::ExpectedValue);}
+                                }
+                            },
+                        });
+                    }
                 }
             }
         }
@@ -302,11 +344,11 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
 
         for arg in &args {
             let ident = &arg.ident;
-            body.extend(match arg.kind {
+            body.extend(match arg.kind() {
                 ArgKind::Flag => quote! {
                     #ident,
                 },
-                ArgKind::Positional => quote! {
+                ArgKind::Positional | ArgKind::Option => quote! {
                     #ident: #ident.ok_or(
                         ::schmargs::SchmargsError::NotEnoughArguments
                     )?,
@@ -321,7 +363,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
 
         let mut pos_count = 0;
 
-        for arg in args {
+        while let Some(arg) = args.next() {
             match arg {
                 #match_body
             }

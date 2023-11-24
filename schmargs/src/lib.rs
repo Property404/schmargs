@@ -45,6 +45,7 @@ pub enum SchmargsError<'a> {
     NoSuchOption(Argument<'a>),
     TooManyArguments,
     NotEnoughArguments,
+    ExpectedValue
 }
 
 impl<'a> From<ParseIntError> for SchmargsError<'a> {

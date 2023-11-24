@@ -212,3 +212,17 @@ fn specify_custom_long() {
     assert!(args.adults);
     assert_eq!(args.puppies, 8);
 }
+
+#[test]
+fn option() {
+    #[derive(Schmargs)]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        #[arg(short, long)]
+        puppy: &'a str,
+    }
+
+    let args = Args::parse("--puppy eddie".split_whitespace()).unwrap();
+    assert_eq!(args.puppy, "eddie");
+}
