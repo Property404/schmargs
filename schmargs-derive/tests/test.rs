@@ -11,6 +11,7 @@ fn basic() {
         /// Second positional argument
         positional2: u64,
         /// Kill all humans?
+        #[arg(long)]
         foo: bool,
     }
 
@@ -26,6 +27,7 @@ fn string() {
     /// Blee blarg bloo
     struct Args<'a> {
         /// Blarg
+        #[arg(long)]
         foo: bool,
         /// Blee
         positional: &'a str,
@@ -48,6 +50,7 @@ fn arbitrary_lifetime_names() {
     /// Schmorp
     struct Args<'fuck> {
         /// Schmeerp
+        #[arg(long)]
         foo: bool,
         /// Schmripe
         positional: &'fuck str,
@@ -64,6 +67,7 @@ fn with_generics() {
     /// Flarp
     struct Args<'fuck, T: SchmargsField<'fuck>> {
         /// Fleerp
+        #[arg(long)]
         foo: bool,
         /// Flurp
         positional: &'fuck str,
@@ -188,6 +192,23 @@ fn short_flag_default() {
     }
 
     let args = Args::parse("-a 8".split_whitespace()).unwrap();
+    assert!(args.adults);
+    assert_eq!(args.puppies, 8);
+}
+
+#[test]
+fn specify_custom_long() {
+    #[derive(Schmargs)]
+    /// Automatic puppy kicker
+    struct Args {
+        /// Kick adult dogs, too
+        #[arg(short, long = "adult")]
+        adults: bool,
+        /// How many puppies to kick
+        puppies: i8,
+    }
+
+    let args = Args::parse("--adult 8".split_whitespace()).unwrap();
     assert!(args.adults);
     assert_eq!(args.puppies, 8);
 }

@@ -1,20 +1,23 @@
 #![allow(unused_imports)]
 use proc_macro::{Span, TokenStream};
+use proc_macro2::{Literal, TokenTree};
 use quote::{quote, ToTokens};
+use std::collections::HashMap;
 use syn::{
     self, parse_macro_input, spanned::Spanned, Attribute, Data, DataStruct, DeriveInput, Fields,
     Lifetime, LifetimeParam, Token,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 enum SchmargsAttribute {
     ArgAttribute(ArgAttribute),
     DocAttribute(DocAttribute),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 struct ArgAttribute {
-    short: Option<Option<char>>,
+    short: Option<Option<Literal>>,
+    long: Option<Option<Literal>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,7 +25,7 @@ struct DocAttribute {
     value: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 struct AttributeAggregate {
     doc: DocAttribute,
     arg: Option<ArgAttribute>,
@@ -34,7 +37,7 @@ enum ArgKind {
     Positional,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 struct Arg {
     attr: AttributeAggregate,
     ident: proc_macro2::Ident,
@@ -46,28 +49,54 @@ fn parse_attribute(attr: &Attribute) -> SchmargsAttribute {
         syn::Meta::List(ref list) => {
             assert!(attr.path().is_ident("arg"));
 
-            if let Ok(path) = list.parse_args::<syn::Path>() {
-                if path.is_ident("short") {
-                    return SchmargsAttribute::ArgAttribute(ArgAttribute { short: Some(None) });
-                } else {
-                    panic!("Unknown attribute argument: {:?}", path.get_ident());
-                }
-            } else {
-                let tok: syn::MetaNameValue = list.parse_args().unwrap();
-                if tok.path.is_ident("short") {
-                    let syn::Expr::Lit(lit) = tok.value else {
-                        panic!("'short' argument expected literal");
-                    };
-                    let syn::Lit::Char(lit) = lit.lit else {
-                        panic!("'short' argument expected character literal");
-                    };
-                    return SchmargsAttribute::ArgAttribute(ArgAttribute {
-                        short: Some(Some(lit.value())),
-                    });
-                } else {
-                    panic!("Unknown attribute argument: {:?}", tok.path.get_ident());
+            let tokens = list.parse_args::<proc_macro2::TokenStream>().unwrap();
+
+            let mut map = HashMap::new();
+
+            let mut key = None;
+            for token in tokens {
+                match token {
+                    TokenTree::Ident(ident) => {
+                        // Later we can remove this assert and add the ident as a value
+                        assert!(key.is_none(), "Cannot use identifier as value in attribute");
+
+                        key = Some(ident.to_string());
+                    }
+                    TokenTree::Punct(punct) => match punct.as_char() {
+                        ',' => {
+                            if let Some(key) = key.take() {
+                                map.insert(key, None);
+                            }
+                        }
+                        '=' => {}
+                        _ => {
+                            panic!("Unexpected punctuation in attribute");
+                        }
+                    },
+                    TokenTree::Literal(literal) => {
+                        if let Some(key) = key.take() {
+                            map.insert(key, Some(literal));
+                        } else {
+                            panic!("Unexpected literal in attribute")
+                        }
+                    }
+                    TokenTree::Group(_) => panic!("Unexpected token tree type"),
                 }
             }
+            if let Some(key) = key.take() {
+                map.insert(key, None);
+            }
+
+            let return_value = SchmargsAttribute::ArgAttribute(ArgAttribute {
+                short: map.remove("short"),
+                long: map.remove("long"),
+            });
+
+            if !map.is_empty() {
+                panic!("Unknown argument to 'arg' attribute");
+            }
+
+            return_value
         }
         syn::Meta::NameValue(ref pair) => {
             assert!(attr.path().is_ident("doc"));
@@ -222,20 +251,30 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
     let match_body = {
         let mut body: proc_macro2::TokenStream = Default::default();
         for arg in args.iter().filter(|a| a.kind == ArgKind::Flag) {
-            let ident = &arg.ident;
-            body.extend(quote! {
-                ::schmargs::Argument::LongFlag(stringify!(#ident)) => {
-                    #ident = true;
-                },
-            });
-            if let Some(ArgAttribute { short: Some(short) }) = arg.attr.arg {
-                let short = short.unwrap_or_else(|| ident.to_string().chars().next().unwrap());
+            if let Some(ArgAttribute { short, long, .. }) = &arg.attr.arg {
+                let ident = &arg.ident;
+                if let Some(short) = short {
+                    let short = short.clone().unwrap_or_else(|| {
+                        Literal::character(ident.to_string().chars().next().unwrap())
+                    });
 
-                body.extend(quote! {
-                    ::schmargs::Argument::ShortFlag(#short) => {
-                        #ident = true;
-                    },
-                });
+                    body.extend(quote! {
+                        ::schmargs::Argument::ShortFlag(#short) => {
+                            #ident = true;
+                        },
+                    });
+                }
+
+                if let Some(long) = long {
+                    let long = long
+                        .clone()
+                        .unwrap_or_else(|| Literal::string(&ident.to_string()));
+                    body.extend(quote! {
+                        ::schmargs::Argument::LongFlag(#long) => {
+                            #ident = true;
+                        },
+                    });
+                }
             }
         }
 
