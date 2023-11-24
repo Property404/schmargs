@@ -2,6 +2,36 @@
 use crate::{Argument, Schmargs, SchmargsError};
 use core::fmt;
 
+/// A wrapper that provides `--help` functionality
+///
+/// # Example
+/// ```
+/// use schmargs::{Schmargs, wrappers::ArgsWithHelp};
+///
+/// /// A very important program to greet somebody
+/// #[derive(Schmargs)]
+/// struct BareArgs {
+///     /// Should we kick the person's shins after greeting them?
+///     #[arg(short,long="kick")]
+///     kick_shins: bool,
+/// }
+/// type Args = ArgsWithHelp::<BareArgs>;
+///
+/// let args = Args::parse("--help".split_whitespace()).unwrap();
+/// match args {
+///     Args::Args(args) => {
+///         println!("Hello!");
+///         if args.kick_shins {
+///             println!("Now I'm gonna kick your shins!");
+///         }
+///     },
+///     Args::Help => {
+///         let mut s = String::new();
+///         Args::write_help(&mut s, "greet").unwrap();
+///         println!("{s}");
+///     }
+/// }
+/// ```
 pub enum ArgsWithHelp<T: for<'a> Schmargs<'a>> {
     Help,
     Args(T),
