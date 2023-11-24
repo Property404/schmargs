@@ -7,8 +7,8 @@
 //! ```
 //! use schmargs::Schmargs;
 //!
-//! #[derive(Schmargs)]
 //! /// A simple memory dump program
+//! #[derive(Schmargs)]
 //! struct Args {
 //!     /// Show color
 //!     #[arg(short, long)]
@@ -41,7 +41,7 @@
 //!
 //! /// A very important program to greet somebody
 //! #[derive(Schmargs)]
-//! struct Args <'a> {
+//! struct Args<'a> {
 //!     /// Should we kick the person's shins after greeting them?
 //!     #[arg(short,long="kick")]
 //!     kick_shins: bool,
@@ -55,12 +55,19 @@
 //! ```
 
 pub mod utils;
+pub mod wrappers;
 
 pub use schmargs_derive::*;
 
 use core::fmt;
 use core::num::ParseIntError;
-use utils::Argument;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Argument<'a> {
+    ShortFlag(char),
+    LongFlag(&'a str),
+    Positional(&'a str),
+}
 
 /// A field that can be parsed by Schmargs
 pub trait SchmargsField<'a>: Sized {
@@ -148,44 +155,4 @@ pub trait Schmargs<'a>: Sized {
     }
     /// Construct from an iterator of argument
     fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>>;
-}
-
-pub enum ArgsWithHelp<T: for<'a> Schmargs<'a>> {
-    Help,
-    Args(T),
-}
-
-impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
-    fn description() -> &'static str {
-        T::description()
-    }
-
-    fn write_help_with_min_indent(
-        mut f: impl fmt::Write,
-        name: impl AsRef<str>,
-        min_indent: usize,
-    ) -> Result<usize, fmt::Error> {
-        let prefix = "-h, --help";
-        let min_indent = core::cmp::max(min_indent, prefix.len() + 1);
-        let min_indent = core::cmp::max(
-            min_indent,
-            T::write_help_with_min_indent(&mut f, name, min_indent)?,
-        );
-        writeln!(f)?;
-        write!(f, "{}", prefix)?;
-        for _ in 0..(min_indent - prefix.len()) {
-            write!(f, " ")?;
-        }
-        write!(f, "Print help")?;
-        Ok(min_indent)
-    }
-
-    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>> {
-        match T::parse(args) {
-            Err(SchmargsError::NoSuchOption(Argument::LongFlag("help")))
-            | Err(SchmargsError::NoSuchOption(Argument::ShortFlag('h'))) => Ok(Self::Help),
-            Ok(other) => Ok(Self::Args(other)),
-            Err(other) => Err(other),
-        }
-    }
 }

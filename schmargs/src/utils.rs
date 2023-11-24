@@ -1,9 +1,5 @@
-#[derive(Debug, PartialEq, Eq)]
-pub enum Argument<'a> {
-    ShortFlag(char),
-    LongFlag(&'a str),
-    Positional(&'a str),
-}
+//! Parsing utilities, mostly for internal use
+use crate::Argument;
 
 /// An iterator that parses out short flags (`-s`), long flags(`--long`), and values out of an
 /// iterator of arguments

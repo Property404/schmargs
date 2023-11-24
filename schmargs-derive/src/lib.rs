@@ -294,7 +294,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
         {
             let ident = &arg.ident;
             if let Some(short) = arg.short() {
-                body.extend(quote! { ::schmargs::utils::Argument::ShortFlag(#short) =>});
+                body.extend(quote! { ::schmargs::Argument::ShortFlag(#short) =>});
                 if arg.kind() == ArgKind::Flag {
                     body.extend(quote! { {
                             #ident = true;
@@ -303,7 +303,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                 } else {
                     body.extend(quote! { {
                                 match args.next() {
-                                    Some(::schmargs::utils::Argument::Positional(value)) => {
+                                    Some(::schmargs::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
@@ -314,7 +314,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
             }
 
             if let Some(long) = arg.long() {
-                body.extend(quote! { ::schmargs::utils::Argument::LongFlag(#long) =>});
+                body.extend(quote! { ::schmargs::Argument::LongFlag(#long) =>});
                 if arg.kind() == ArgKind::Flag {
                     body.extend(quote! { {
                             #ident = true;
@@ -323,7 +323,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                 } else {
                     body.extend(quote! { {
                                 match args.next() {
-                                    Some(::schmargs::utils::Argument::Positional(value)) => {
+                                    Some(::schmargs::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
@@ -343,7 +343,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
         if !positional.is_empty() {
             let (num, positional) = (num.into_iter(), positional.into_iter());
             body.extend(quote! {
-                ::schmargs::utils::Argument::Positional(value) => {
+                ::schmargs::Argument::Positional(value) => {
                     match pos_count {
                     #(
                         #num => {#positional = Some(::schmargs::SchmargsField::parse_str(value)?);},
@@ -355,7 +355,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
             });
         } else {
             body.extend(quote! {
-                ::schmargs::utils::Argument::Positional(val) => {
+                ::schmargs::Argument::Positional(val) => {
                     ::core::result::Result::Err(::schmargs::SchmargsError::UnexpectedValue(val))?;
                 },
             });

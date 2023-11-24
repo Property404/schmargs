@@ -145,7 +145,7 @@ fn description() {
 
 #[test]
 fn help_arg() {
-    use schmargs::ArgsWithHelp;
+    use schmargs::wrappers::ArgsWithHelp;
 
     #[derive(Schmargs)]
     /// Automatic puppy kicker
