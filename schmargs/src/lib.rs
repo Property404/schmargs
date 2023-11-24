@@ -58,6 +58,7 @@ pub mod utils;
 
 pub use schmargs_derive::*;
 
+use core::fmt;
 use core::num::ParseIntError;
 use utils::Argument;
 
@@ -133,6 +134,18 @@ impl<'a> From<ParseIntError> for SchmargsError<'a> {
 pub trait Schmargs<'a>: Sized {
     /// Get command description
     fn description() -> &'static str;
+    /// Write help text to `f`
+    /// Returns the indent used, which will be greater than or equal to `min_indent`
+    fn write_help_with_min_indent(
+        f: impl fmt::Write,
+        name: impl AsRef<str>,
+        min_indent: usize,
+    ) -> Result<usize, fmt::Error>;
+    /// Write help text to `f`
+    fn write_help(f: impl fmt::Write, name: impl AsRef<str>) -> fmt::Result {
+        Self::write_help_with_min_indent(f, name, 0)?;
+        Ok(())
+    }
     /// Construct from an iterator of argument
     fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>>;
 }
@@ -145,6 +158,26 @@ pub enum ArgsWithHelp<T: for<'a> Schmargs<'a>> {
 impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
     fn description() -> &'static str {
         T::description()
+    }
+
+    fn write_help_with_min_indent(
+        mut f: impl fmt::Write,
+        name: impl AsRef<str>,
+        min_indent: usize,
+    ) -> Result<usize, fmt::Error> {
+        let prefix = "-h, --help";
+        let min_indent = core::cmp::max(min_indent, prefix.len() + 1);
+        let min_indent = core::cmp::max(
+            min_indent,
+            T::write_help_with_min_indent(&mut f, name, min_indent)?,
+        );
+        writeln!(f)?;
+        write!(f, "{}", prefix)?;
+        for _ in 0..(min_indent - prefix.len()) {
+            write!(f, " ")?;
+        }
+        write!(f, "Print help")?;
+        Ok(min_indent)
     }
 
     fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>> {

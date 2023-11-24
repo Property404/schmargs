@@ -56,6 +56,31 @@ impl Arg {
             ArgKind::Positional
         }
     }
+
+    fn short(&self) -> Option<Literal> {
+        if let Some(ArgAttribute {
+            short: Some(short), ..
+        }) = &self.attr.arg
+        {
+            return Some(short.clone().unwrap_or_else(|| {
+                Literal::character(self.ident.to_string().chars().next().unwrap())
+            }));
+        }
+        None
+    }
+
+    fn long(&self) -> Option<Literal> {
+        if let Some(ArgAttribute {
+            long: Some(long), ..
+        }) = &self.attr.arg
+        {
+            return Some(
+                long.clone()
+                    .unwrap_or_else(|| Literal::string(&self.ident.to_string())),
+            );
+        }
+        None
+    }
 }
 
 fn parse_attribute(attr: &Attribute) -> SchmargsAttribute {
@@ -203,26 +228,8 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
         _ => panic!("expected a struct with named fields"),
     };
 
-    let body = impl_fn_body(&fields);
-
-    let gen = quote! {
-        impl #impl_generics ::schmargs::Schmargs <#lifetime> for #name #struct_generics {
-            fn description() -> &'static str {
-                #description
-            }
-            fn parse(args: impl ::core::iter::Iterator<Item =  & #lifetime str>) -> ::core::result::Result<Self, ::schmargs::SchmargsError<#lifetime>> {
-                #body
-            }
-        }
-    };
-
-    gen.into()
-}
-
-fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
-    let fields = &fields.named;
-
     let args: Vec<_> = fields
+        .named
         .iter()
         .map(|field| {
             let is_bool = field.ty.span().source_text().unwrap() == "bool";
@@ -236,11 +243,34 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
         })
         .collect();
 
+    let help_body = impl_help_body(&args);
+    let parse_body = impl_parse_body(&args);
+
+    let gen = quote! {
+        impl #impl_generics ::schmargs::Schmargs <#lifetime> for #name #struct_generics {
+            fn description() -> &'static str {
+                #description
+            }
+
+            fn write_help_with_min_indent(mut f: impl ::core::fmt::Write, name: impl ::core::convert::AsRef<str>, mut min_indent: usize) -> Result<usize, ::core::fmt::Error> {
+                #help_body
+            }
+
+            fn parse(args: impl ::core::iter::Iterator<Item =  & #lifetime str>) -> ::core::result::Result<Self, ::schmargs::SchmargsError<#lifetime>> {
+                #parse_body
+            }
+        }
+    };
+
+    gen.into()
+}
+
+fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
     let mut body = quote! {
         let mut args = ::schmargs::utils::ArgumentIterator::from_args(args);
     };
 
-    for arg in &args {
+    for arg in args {
         let ident = &arg.ident;
         body.extend(match arg.kind() {
             ArgKind::Flag => {
@@ -262,21 +292,16 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
             .iter()
             .filter(|a| a.kind() == ArgKind::Flag || a.kind() == ArgKind::Option)
         {
-            if let Some(ArgAttribute { short, long, .. }) = &arg.attr.arg {
-                let ident = &arg.ident;
-                if let Some(short) = short {
-                    let short = short.clone().unwrap_or_else(|| {
-                        Literal::character(ident.to_string().chars().next().unwrap())
+            let ident = &arg.ident;
+            if let Some(short) = arg.short() {
+                body.extend(quote! { ::schmargs::utils::Argument::ShortFlag(#short) =>});
+                if arg.kind() == ArgKind::Flag {
+                    body.extend(quote! { {
+                            #ident = true;
+                        },
                     });
-
-                    body.extend(quote! { ::schmargs::utils::Argument::ShortFlag(#short) =>});
-                    if arg.kind() == ArgKind::Flag {
-                        body.extend(quote! { {
-                                #ident = true;
-                            },
-                        });
-                    } else {
-                        body.extend(quote! { {
+                } else {
+                    body.extend(quote! { {
                                 match args.next() {
                                     Some(::schmargs::utils::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
@@ -285,21 +310,18 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                                 }
                             },
                         });
-                    }
                 }
+            }
 
-                if let Some(long) = long {
-                    let long = long
-                        .clone()
-                        .unwrap_or_else(|| Literal::string(&ident.to_string()));
-                    body.extend(quote! { ::schmargs::utils::Argument::LongFlag(#long) =>});
-                    if arg.kind() == ArgKind::Flag {
-                        body.extend(quote! { {
-                                #ident = true;
-                            },
-                        });
-                    } else {
-                        body.extend(quote! { {
+            if let Some(long) = arg.long() {
+                body.extend(quote! { ::schmargs::utils::Argument::LongFlag(#long) =>});
+                if arg.kind() == ArgKind::Flag {
+                    body.extend(quote! { {
+                            #ident = true;
+                        },
+                    });
+                } else {
+                    body.extend(quote! { {
                                 match args.next() {
                                     Some(::schmargs::utils::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
@@ -308,7 +330,6 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                                 }
                             },
                         });
-                    }
                 }
             }
         }
@@ -349,7 +370,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
     let return_body = {
         let mut body: proc_macro2::TokenStream = Default::default();
 
-        for arg in &args {
+        for arg in args {
             let ident = &arg.ident;
             body.extend(match arg.kind() {
                 ArgKind::Flag => quote! {
@@ -381,5 +402,104 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
         })
     });
 
+    body
+}
+
+fn impl_help_body(args: &[Arg]) -> proc_macro2::TokenStream {
+    let mut body = {
+        let ident = args.iter().map(|v| &v.ident);
+        quote! {
+            #(
+                min_indent = ::core::cmp::max(min_indent, "-h, --".len() + stringify!(#ident).len() + 1);
+            )*
+        }
+    };
+
+    body.extend(quote! {
+        writeln!(f, "{}", Self::description())?;
+        writeln!(f)?;
+        write!(f, "Usage: {}", name.as_ref())?;
+    });
+
+    if args.iter().any(|v| v.kind() == ArgKind::Flag) {
+        body.extend(quote! {
+            write!(f, " [OPTIONS]")?;
+        });
+    }
+
+    for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
+        let ident = &arg.ident;
+        body.extend(quote! {
+            write!(f, " [{}]", stringify!(#ident))?;
+        });
+    }
+    body.extend(quote! {
+        writeln!(f)?;
+    });
+
+    if args.iter().any(|v| v.kind() == ArgKind::Positional) {
+        body.extend(quote! {
+            writeln!(f)?;
+            writeln!(f, "Arguments:")?;
+        });
+        for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
+            let ident = &arg.ident;
+            let desc = &arg.attr.doc.value;
+            body.extend(quote! {
+                writeln!(f, "[{}]        {}", stringify!(#ident), #desc)?;
+            });
+        }
+    }
+
+    if args
+        .iter()
+        .any(|v| v.kind() == ArgKind::Flag || v.kind() == ArgKind::Option)
+    {
+        body.extend(quote! {
+            writeln!(f)?;
+            write!(f, "Options:")?;
+        });
+        for arg in args
+            .iter()
+            .filter(|v| v.kind() == ArgKind::Flag || v.kind() == ArgKind::Option)
+        {
+            let desc = &arg.attr.doc.value;
+
+            body.extend(quote! {
+                let mut revindent = 0;
+                writeln!(f)?;
+            });
+
+            if let Some(short) = arg.short() {
+                body.extend(quote! {
+                    write!(f, "-{}", #short)?;
+                    revindent += 2;
+                });
+                if arg.long().is_some() {
+                    body.extend(quote! {
+                        write!(f, ", ")?;
+                        revindent += 2;
+                    });
+                }
+            }
+            if let Some(long) = arg.long() {
+                body.extend(quote! {
+                    write!(f, "--{}", #long)?;
+                    revindent += 2 + #long.len();
+                });
+            }
+
+            body.extend(quote! {
+                for _ in 0..min_indent.saturating_sub(revindent) {
+                    write!(f, " ")?;
+                }
+                write!(f, "{}", #desc)?;
+            });
+        }
+    }
+
+    body.extend(quote! {
+        Ok(min_indent)
+    });
     body
 }
