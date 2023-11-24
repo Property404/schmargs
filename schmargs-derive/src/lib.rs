@@ -1,11 +1,10 @@
-#![allow(unused_imports)]
 use proc_macro::{Span, TokenStream};
 use proc_macro2::{Literal, TokenTree};
-use quote::{quote, ToTokens};
+use quote::quote;
 use std::collections::HashMap;
 use syn::{
     self, parse_macro_input, spanned::Spanned, Attribute, Data, DataStruct, DeriveInput, Fields,
-    Lifetime, LifetimeParam, Token,
+    Lifetime, LifetimeParam,
 };
 
 #[derive(Debug, Clone)]
@@ -257,7 +256,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
             }
             ArgKind::Positional | ArgKind::Option => {
                 quote! {
-                    let mut #ident = ::schmargs::SchmargsField::as_option();//::core::option::Option::None;
+                    let mut #ident = ::schmargs::SchmargsField::as_option();
                 }
             }
         });
