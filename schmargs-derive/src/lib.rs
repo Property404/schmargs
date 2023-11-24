@@ -243,7 +243,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
         .collect();
 
     let mut body = quote! {
-        let mut args = ::schmargs::ArgumentIterator::from_args(args);
+        let mut args = ::schmargs::utils::ArgumentIterator::from_args(args);
     };
 
     for arg in &args {
@@ -275,7 +275,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                         Literal::character(ident.to_string().chars().next().unwrap())
                     });
 
-                    body.extend(quote! { ::schmargs::Argument::ShortFlag(#short) =>});
+                    body.extend(quote! { ::schmargs::utils::Argument::ShortFlag(#short) =>});
                     if arg.kind() == ArgKind::Flag {
                         body.extend(quote! { {
                                 #ident = true;
@@ -284,7 +284,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                     } else {
                         body.extend(quote! { {
                                 match args.next() {
-                                    Some(::schmargs::Argument::Positional(value)) => {
+                                    Some(::schmargs::utils::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue);}
@@ -298,7 +298,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                     let long = long
                         .clone()
                         .unwrap_or_else(|| Literal::string(&ident.to_string()));
-                    body.extend(quote! { ::schmargs::Argument::LongFlag(#long) =>});
+                    body.extend(quote! { ::schmargs::utils::Argument::LongFlag(#long) =>});
                     if arg.kind() == ArgKind::Flag {
                         body.extend(quote! { {
                                 #ident = true;
@@ -307,7 +307,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                     } else {
                         body.extend(quote! { {
                                 match args.next() {
-                                    Some(::schmargs::Argument::Positional(value)) => {
+                                    Some(::schmargs::utils::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue);}
@@ -323,7 +323,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
             arg_positionals.iter().enumerate().unzip();
         let (num, positional) = (num.into_iter(), positional.into_iter());
         body.extend(quote! {
-            ::schmargs::Argument::Positional(value) => {
+            ::schmargs::utils::Argument::Positional(value) => {
                 match pos_count {
                 #(
                     #num => {#positional = Some(::schmargs::SchmargsField::parse_str(value)?);},
