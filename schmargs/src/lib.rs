@@ -70,9 +70,9 @@ pub enum Argument<T: AsRef<str>> {
 }
 
 /// A field that can be parsed by Schmargs
-pub trait SchmargsField<'a>: Sized {
+pub trait SchmargsField<T: AsRef<str>>: Sized {
     /// Construct type from string
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>>;
+    fn parse_str(val: T) -> Result<Self, SchmargsError<T>>;
     // Mechanism used to make `Option` types optional
     #[doc(hidden)]
     fn as_option() -> Option<Self> {
@@ -82,7 +82,7 @@ pub trait SchmargsField<'a>: Sized {
 
 macro_rules! impl_on_integer {
     ($ty:ty) => {
-        impl<'a> SchmargsField<'a> for $ty {
+        impl<'a> SchmargsField<&'a str> for $ty {
             fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
                 if let Some(val) = val.strip_prefix("0x") {
                     Ok(<$ty>::from_str_radix(val, 16)?)
@@ -107,13 +107,13 @@ impl_on_integer!(i64);
 impl_on_integer!(i128);
 impl_on_integer!(isize);
 
-impl<'a> SchmargsField<'a> for &'a str {
+impl<'a> SchmargsField<&'a str> for &'a str {
     fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
         Ok(val)
     }
 }
 
-impl<'a, T: SchmargsField<'a>> SchmargsField<'a> for Option<T> {
+impl<'a, T: SchmargsField<&'a str>> SchmargsField<&'a str> for Option<T> {
     fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
         Ok(Some(T::parse_str(val)?))
     }

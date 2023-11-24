@@ -64,7 +64,7 @@ fn arbitrary_lifetime_names() {
 fn with_generics() {
     #[derive(Schmargs)]
     /// Flarp
-    struct Args<'fuck, T: SchmargsField<'fuck>> {
+    struct Args<'fuck, T: SchmargsField<&'fuck str>> {
         /// Fleerp
         #[arg(long)]
         foo: bool,
