@@ -1,5 +1,30 @@
 #![cfg_attr(not(test), no_std)]
 #![forbid(unsafe_code)]
+//! A `#![no_std]` argument parser
+//!
+//! # Example
+//! This example was stolen from [Clap](https://docs.rs/clap/latest/clap/)
+//! ```
+//! use schmargs::Schmargs;
+//!
+//! #[derive(Schmargs)]
+//! /// A simple program to greet a person
+//! struct Args<'a> {
+//!     /// Name of the person to greet
+//!     #[arg(short, long)]
+//!     name: &'a str,
+//!
+//!     /// Number of times to greet
+//!     count: u8
+//! }
+//!
+//! let args = Args::parse("--name me 4".split_whitespace()).unwrap();
+//! assert_eq!(args.name, "me");
+//! assert_eq!(args.count, 4);
+//!
+//! ```
+//!
+
 pub mod utils;
 
 pub use schmargs_derive::*;
@@ -66,8 +91,7 @@ pub enum SchmargsError<'a> {
     ParseInt(ParseIntError),
     NoSuchOption(Argument<'a>),
     TooManyArguments,
-    NotEnoughArguments,
-    ExpectedValue,
+    ExpectedValue(&'static str),
 }
 
 impl<'a> From<ParseIntError> for SchmargsError<'a> {

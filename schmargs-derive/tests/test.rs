@@ -1,5 +1,4 @@
 use schmargs::{Schmargs, SchmargsField};
-use schmargs_derive::Schmargs;
 
 #[test]
 fn basic() {
@@ -225,6 +224,23 @@ fn option() {
 
     let args = Args::parse("--puppy eddie".split_whitespace()).unwrap();
     assert_eq!(args.puppy, "eddie");
+}
+
+#[test]
+fn option_plus_positional() {
+    #[derive(Schmargs)]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        #[arg(short, long)]
+        puppy: &'a str,
+        /// Number of times to kick
+        times_to_kick: u8,
+    }
+
+    let args = Args::parse("--puppy eddie 32".split_whitespace()).unwrap();
+    assert_eq!(args.puppy, "eddie");
+    assert_eq!(args.times_to_kick, 32);
 }
 
 #[test]

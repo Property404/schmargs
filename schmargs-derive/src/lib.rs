@@ -236,12 +236,6 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
         })
         .collect();
 
-    let arg_positionals: Vec<_> = fields
-        .iter()
-        .filter(|field| field.ty.span().source_text().unwrap() != "bool")
-        .map(|field| &field.ident)
-        .collect();
-
     let mut body = quote! {
         let mut args = ::schmargs::utils::ArgumentIterator::from_args(args);
     };
@@ -287,7 +281,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                                     Some(::schmargs::utils::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
                                     },
-                                    _=> {return Err(::schmargs::SchmargsError::ExpectedValue);}
+                                    _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
                                 }
                             },
                         });
@@ -310,7 +304,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                                     Some(::schmargs::utils::Argument::Positional(value)) => {
                                         #ident = Some(::schmargs::SchmargsField::parse_str(value)?);
                                     },
-                                    _=> {return Err(::schmargs::SchmargsError::ExpectedValue);}
+                                    _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
                                 }
                             },
                         });
@@ -319,8 +313,12 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
             }
         }
 
-        let (num, positional): (Vec<usize>, Vec<&Option<proc_macro2::Ident>>) =
-            arg_positionals.iter().enumerate().unzip();
+        let (num, positional): (Vec<usize>, Vec<proc_macro2::Ident>) = args
+            .iter()
+            .filter(|a| a.kind() == ArgKind::Positional)
+            .map(|a| a.ident.clone())
+            .enumerate()
+            .unzip();
         let (num, positional) = (num.into_iter(), positional.into_iter());
         body.extend(quote! {
             ::schmargs::utils::Argument::Positional(value) => {
@@ -349,7 +347,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
                 },
                 ArgKind::Positional | ArgKind::Option => quote! {
                     #ident: #ident.ok_or(
-                        ::schmargs::SchmargsError::NotEnoughArguments
+                        ::schmargs::SchmargsError::ExpectedValue(stringify!(#ident))
                     )?,
                 },
             });
