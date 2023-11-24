@@ -2,8 +2,12 @@
 #![forbid(unsafe_code)]
 use core::num::ParseIntError;
 
+/// A field that can be parsed by Schmargs
 pub trait SchmargsField<'a>: Sized {
+    /// Construct type from string
     fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>;
+    // Mechanism used to make `Option` types optional
+    #[doc(hidden)]
     fn as_option() -> Option<Self> {
         None
     }
@@ -74,6 +78,8 @@ pub enum Argument<'a> {
     Positional(&'a str),
 }
 
+/// An iterator that parses out short flags (`-s`), long flags(`--long`), and values out of an
+/// iterator of arguments
 pub struct ArgumentIterator<'a, I: Iterator<Item = &'a str>> {
     hit_double_dash: bool,
     shortflags: Option<core::str::Chars<'a>>,
@@ -81,6 +87,7 @@ pub struct ArgumentIterator<'a, I: Iterator<Item = &'a str>> {
 }
 
 impl<'a, I: Iterator<Item = &'a str>> ArgumentIterator<'a, I> {
+    /// Construct from list of logical arguments
     pub fn from_args(args: I) -> Self {
         Self {
             hit_double_dash: false,
@@ -125,8 +132,11 @@ impl<'a, I: Iterator<Item = &'a str>> Iterator for ArgumentIterator<'a, I> {
     }
 }
 
+/// An argument parser
 pub trait Schmargs<'a>: Sized {
+    /// Get command description
     fn description() -> &'static str;
+    /// Construct from an iterator of argument
     fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>>;
 }
 
