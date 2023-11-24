@@ -21,9 +21,9 @@ impl<'a, I: Iterator<Item = &'a str>> ArgumentIterator<'a, I> {
 }
 
 impl<'a, I: Iterator<Item = &'a str>> Iterator for ArgumentIterator<'a, I> {
-    type Item = Argument<'a>;
+    type Item = Argument<&'a str>;
 
-    fn next(&mut self) -> Option<Argument<'a>> {
+    fn next(&mut self) -> Option<Argument<&'a str>> {
         if let Some(ref mut shortflags) = &mut self.shortflags {
             if let Some(flag) = shortflags.next() {
                 return Some(Argument::ShortFlag(flag));

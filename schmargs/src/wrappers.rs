@@ -62,7 +62,7 @@ impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
         Ok(min_indent)
     }
 
-    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>> {
+    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<&'a str>> {
         match T::parse(args) {
             Err(SchmargsError::NoSuchOption(Argument::LongFlag("help")))
             | Err(SchmargsError::NoSuchOption(Argument::ShortFlag('h'))) => Ok(Self::Help),

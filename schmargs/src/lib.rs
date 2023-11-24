@@ -63,16 +63,16 @@ use core::fmt;
 use core::num::ParseIntError;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Argument<'a> {
+pub enum Argument<T: AsRef<str>> {
     ShortFlag(char),
-    LongFlag(&'a str),
-    Positional(&'a str),
+    LongFlag(T),
+    Positional(T),
 }
 
 /// A field that can be parsed by Schmargs
 pub trait SchmargsField<'a>: Sized {
     /// Construct type from string
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>;
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>>;
     // Mechanism used to make `Option` types optional
     #[doc(hidden)]
     fn as_option() -> Option<Self> {
@@ -83,7 +83,7 @@ pub trait SchmargsField<'a>: Sized {
 macro_rules! impl_on_integer {
     ($ty:ty) => {
         impl<'a> SchmargsField<'a> for $ty {
-            fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>> {
+            fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
                 if let Some(val) = val.strip_prefix("0x") {
                     Ok(<$ty>::from_str_radix(val, 16)?)
                 } else {
@@ -108,13 +108,13 @@ impl_on_integer!(i128);
 impl_on_integer!(isize);
 
 impl<'a> SchmargsField<'a> for &'a str {
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>> {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
         Ok(val)
     }
 }
 
 impl<'a, T: SchmargsField<'a>> SchmargsField<'a> for Option<T> {
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>> {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
         Ok(Some(T::parse_str(val)?))
     }
 
@@ -124,14 +124,14 @@ impl<'a, T: SchmargsField<'a>> SchmargsField<'a> for Option<T> {
 }
 
 #[derive(Debug)]
-pub enum SchmargsError<'a> {
+pub enum SchmargsError<T: AsRef<str>> {
     ParseInt(ParseIntError),
-    NoSuchOption(Argument<'a>),
-    UnexpectedValue(&'a str),
+    NoSuchOption(Argument<T>),
+    UnexpectedValue(T),
     ExpectedValue(&'static str),
 }
 
-impl<'a> From<ParseIntError> for SchmargsError<'a> {
+impl<'a> From<ParseIntError> for SchmargsError<&'a str> {
     fn from(error: ParseIntError) -> Self {
         Self::ParseInt(error)
     }
@@ -154,5 +154,5 @@ pub trait Schmargs<'a>: Sized {
         Ok(())
     }
     /// Construct from an iterator of argument
-    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<'a>>;
+    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<&'a str>>;
 }

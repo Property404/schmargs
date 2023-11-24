@@ -256,7 +256,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
                 #help_body
             }
 
-            fn parse(args: impl ::core::iter::Iterator<Item =  & #lifetime str>) -> ::core::result::Result<Self, ::schmargs::SchmargsError<#lifetime>> {
+            fn parse(args: impl ::core::iter::Iterator<Item =  & #lifetime str>) -> ::core::result::Result<Self, ::schmargs::SchmargsError<&#lifetime str>> {
                 #parse_body
             }
         }
