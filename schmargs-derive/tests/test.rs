@@ -226,3 +226,17 @@ fn option() {
     let args = Args::parse("--puppy eddie".split_whitespace()).unwrap();
     assert_eq!(args.puppy, "eddie");
 }
+
+#[test]
+fn optional_option() {
+    #[derive(Schmargs)]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        #[arg(short, long)]
+        puppy: Option<&'a str>,
+    }
+
+    let args = Args::parse("".split_whitespace()).unwrap();
+    assert_eq!(args.puppy, None);
+}

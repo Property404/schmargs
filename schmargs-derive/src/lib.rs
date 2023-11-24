@@ -257,7 +257,7 @@ fn impl_fn_body(fields: &syn::FieldsNamed) -> proc_macro2::TokenStream {
             }
             ArgKind::Positional | ArgKind::Option => {
                 quote! {
-                    let mut #ident = ::core::option::Option::None;
+                    let mut #ident = ::schmargs::SchmargsField::as_option();//::core::option::Option::None;
                 }
             }
         });

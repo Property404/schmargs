@@ -4,6 +4,9 @@ use core::num::ParseIntError;
 
 pub trait SchmargsField<'a>: Sized {
     fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>>;
+    fn as_option() -> Option<Self> {
+        None
+    }
 }
 
 macro_rules! impl_on_integer {
@@ -39,13 +42,23 @@ impl<'a> SchmargsField<'a> for &'a str {
     }
 }
 
+impl<'a, T: SchmargsField<'a>> SchmargsField<'a> for Option<T> {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<'a>> {
+        Ok(Some(T::parse_str(val)?))
+    }
+
+    fn as_option() -> Option<Self> {
+        Some(None)
+    }
+}
+
 #[derive(Debug)]
 pub enum SchmargsError<'a> {
     ParseInt(ParseIntError),
     NoSuchOption(Argument<'a>),
     TooManyArguments,
     NotEnoughArguments,
-    ExpectedValue
+    ExpectedValue,
 }
 
 impl<'a> From<ParseIntError> for SchmargsError<'a> {
