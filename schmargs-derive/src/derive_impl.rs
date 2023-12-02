@@ -185,7 +185,10 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     // that we can manipulate
     let name = input.ident;
     let description = parse_attributes(&input.attrs)?.doc.value;
-    let default_lifetime = LifetimeParam::new(Lifetime::new("'a", Span::call_site().into()));
+    let default_lifetime = LifetimeParam::new(Lifetime::new(
+        "'__schmargs_lifetime",
+        Span::call_site().into(),
+    ));
     let generics = input.generics.clone();
     let lifetime = generics.lifetimes().next().unwrap_or(&default_lifetime);
 
