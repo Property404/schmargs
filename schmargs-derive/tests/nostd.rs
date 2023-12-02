@@ -10,14 +10,14 @@ struct Args {
     /// Second positional argument
     positional2: u64,
     /// Kill all humans?
-    #[arg(long)]
-    foo: bool,
+    #[arg(short,long="kill")]
+    kill_all_humans: bool,
 }
 
 #[test]
 fn nostd_basic() {
-    let args = Args::parse("--foo 42 255".split_whitespace()).unwrap();
+    let args = Args::parse("-k 42 255".split_whitespace()).unwrap();
     assert_eq!(args.positional, 42);
     assert_eq!(args.positional2, 255);
-    assert_eq!(args.foo, true);
+    assert!(args.kill_all_humans);
 }
