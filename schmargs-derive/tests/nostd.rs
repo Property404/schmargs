@@ -10,7 +10,7 @@ struct Args {
     /// Second positional argument
     positional2: u64,
     /// Kill all humans?
-    #[arg(short,long="kill")]
+    #[arg(short, long = "kill")]
     kill_all_humans: bool,
 }
 
