@@ -5,22 +5,56 @@ use core::fmt;
 /// A wrapper that provides `--help` functionality
 ///
 /// # Example
+///
+/// Without lifetimes
+/// ```
+/// use schmargs::{Schmargs, wrappers::ArgsWithHelp};
+///
+/// /// Program that barks
+/// #[derive(Schmargs)]
+/// struct BareArgs {
+///     /// Should we meow instead?
+///     #[arg(short,long)]
+///     meow: bool,
+/// }
+/// type Args = ArgsWithHelp::<BareArgs>;
+///
+/// let args = ArgsWithHelp::parse("--help".split_whitespace()).unwrap();
+/// match args {
+///     Args::Args(args) => {
+///         if args.meow {
+///             println!("Meow!");
+///         } else {
+///             println!("Bark!");
+///         }
+///     },
+///     Args::Help => {
+///         let mut s = String::new();
+///         Args::write_help(&mut s, "greet").unwrap();
+///         println!("{s}");
+///     }
+/// }
+/// ```
+///
+/// With lifetimes
 /// ```
 /// use schmargs::{Schmargs, wrappers::ArgsWithHelp};
 ///
 /// /// A very important program to greet somebody
 /// #[derive(Schmargs)]
-/// struct BareArgs {
+/// struct BareArgs<'a> {
 ///     /// Should we kick the person's shins after greeting them?
 ///     #[arg(short,long="kick")]
 ///     kick_shins: bool,
+///     /// Name of the person we're greeting
+///     person: &'a str
 /// }
-/// type Args = ArgsWithHelp::<BareArgs>;
+/// type Args<'a> = ArgsWithHelp::<BareArgs<'a>>;
 ///
-/// let args = Args::parse("--help".split_whitespace()).unwrap();
+/// let args = ArgsWithHelp::parse("--help".split_whitespace()).unwrap();
 /// match args {
 ///     Args::Args(args) => {
-///         println!("Hello!");
+///         println!("Hello, {}!", args.person);
 ///         if args.kick_shins {
 ///             println!("Now I'm gonna kick your shins!");
 ///         }
