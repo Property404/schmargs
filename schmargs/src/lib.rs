@@ -140,7 +140,7 @@ impl<T: AsRef<str>> From<ParseIntError> for SchmargsError<T> {
 }
 
 /// An argument parser
-pub trait Schmargs<'a>: Sized {
+pub trait Schmargs<T: AsRef<str>>: Sized {
     /// Get command description
     fn description() -> &'static str;
     /// Write help text to `f`
@@ -156,5 +156,5 @@ pub trait Schmargs<'a>: Sized {
         Ok(())
     }
     /// Construct from an iterator of argument
-    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<&'a str>>;
+    fn parse(args: impl Iterator<Item = T>) -> Result<Self, SchmargsError<T>>;
 }

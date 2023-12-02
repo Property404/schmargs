@@ -32,14 +32,14 @@ use core::fmt;
 ///     }
 /// }
 /// ```
-pub enum ArgsWithHelp<T: for<'a> Schmargs<'a>> {
+pub enum ArgsWithHelp<S: Sized> {
     Help,
-    Args(T),
+    Args(S),
 }
 
-impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
+impl<T: AsRef<str>, S: Schmargs<T>> Schmargs<T> for ArgsWithHelp<S> {
     fn description() -> &'static str {
-        T::description()
+        S::description()
     }
 
     fn write_help_with_min_indent(
@@ -51,7 +51,7 @@ impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
         let min_indent = core::cmp::max(min_indent, prefix.len() + 1);
         let min_indent = core::cmp::max(
             min_indent,
-            T::write_help_with_min_indent(&mut f, name, min_indent)?,
+            S::write_help_with_min_indent(&mut f, name, min_indent)?,
         );
         writeln!(f)?;
         write!(f, "{}", prefix)?;
@@ -62,12 +62,23 @@ impl<'a, T: for<'b> Schmargs<'b>> Schmargs<'a> for ArgsWithHelp<T> {
         Ok(min_indent)
     }
 
-    fn parse(args: impl Iterator<Item = &'a str>) -> Result<Self, SchmargsError<&'a str>> {
-        match T::parse(args) {
-            Err(SchmargsError::NoSuchOption(Argument::LongFlag("--help")))
-            | Err(SchmargsError::NoSuchOption(Argument::ShortFlag('h'))) => Ok(Self::Help),
-            Ok(other) => Ok(Self::Args(other)),
-            Err(other) => Err(other),
+    fn parse(args: impl Iterator<Item = T>) -> Result<Self, SchmargsError<T>> {
+        match S::parse(args) {
+            Ok(inner) => Ok(Self::Args(inner)),
+            Err(inner) => {
+                if let SchmargsError::NoSuchOption(ref option) = inner {
+                    match option {
+                        Argument::LongFlag(v) if v.as_ref() == "--help" => {
+                            return Ok(Self::Help);
+                        }
+                        Argument::ShortFlag('h') => {
+                            return Ok(Self::Help);
+                        }
+                        _ => {}
+                    }
+                }
+                Err(inner)
+            }
         }
     }
 }

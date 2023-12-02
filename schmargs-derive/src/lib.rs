@@ -247,7 +247,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
     let parse_body = impl_parse_body(&args);
 
     let gen = quote! {
-        impl #impl_generics ::schmargs::Schmargs <#lifetime> for #name #struct_generics {
+        impl #impl_generics ::schmargs::Schmargs <&#lifetime str> for #name #struct_generics {
             fn description() -> &'static str {
                 #description
             }
