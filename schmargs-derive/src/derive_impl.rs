@@ -415,7 +415,15 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                         let short: char = short;
                         match short {
                             #short_flag_match_body
-                            _ => {todo!("No such short flag, return proper error");}
+                            __schmargs_misc_short_flag => {
+                                return ::core::result::Result::Err(
+                                    ::schmargs::SchmargsError::NoSuchOption(
+                                        ::schmargs::Argument::ShortFlag(
+                                            __schmargs_misc_short_flag
+                                        )
+                                    )
+                                );
+                            }
                         }
                     }
                 },
