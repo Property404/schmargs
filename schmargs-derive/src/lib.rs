@@ -267,7 +267,7 @@ pub fn schmargs_derive(input: TokenStream) -> TokenStream {
 
 fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
     let mut body = quote! {
-        let mut args = ::schmargs::utils::ArgumentIterator::from_args(args);
+        let mut args = ::schmargs::utils::DumbIterator::from_args(args);
     };
 
     for arg in args {
@@ -286,7 +286,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
         });
     }
 
-    let match_body = {
+    let short_flag_match_body = {
         let mut body: proc_macro2::TokenStream = Default::default();
         for arg in args
             .iter()
@@ -294,7 +294,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
         {
             let ident = &arg.ident;
             if let Some(short) = arg.short() {
-                body.extend(quote! { ::schmargs::Argument::ShortFlag(#short) =>});
+                body.extend(quote! { #short =>});
                 if arg.kind() == ArgKind::Flag {
                     body.extend(quote! { {
                             #ident = true;
@@ -303,7 +303,8 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                 } else {
                     body.extend(quote! { {
                                 match args.next() {
-                                    Some(::schmargs::Argument::Positional(value)) => {
+                                    Some(::schmargs::utils::DumbArgument::Positional(value)) => {
+                                        let value = value.as_ref();
                                         #ident = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
@@ -312,9 +313,22 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                         });
                 }
             }
+        }
 
+        body
+    };
+
+    let match_body = {
+        let mut body: proc_macro2::TokenStream = Default::default();
+        for arg in args
+            .iter()
+            .filter(|a| a.kind() == ArgKind::Flag || a.kind() == ArgKind::Option)
+        {
+            let ident = &arg.ident;
             if let Some(long) = arg.long() {
-                body.extend(quote! { ::schmargs::Argument::LongFlag(#long) =>});
+                body.extend(
+                    quote! { ::schmargs::utils::DumbArgument::LongFlag(concat!("--",#long)) =>},
+                );
                 if arg.kind() == ArgKind::Flag {
                     body.extend(quote! { {
                             #ident = true;
@@ -323,7 +337,8 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                 } else {
                     body.extend(quote! { {
                                 match args.next() {
-                                    Some(::schmargs::Argument::Positional(value)) => {
+                                    Some(::schmargs::utils::DumbArgument::Positional(value)) => {
+                                        let value = value.as_ref();
                                         #ident = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
@@ -343,7 +358,8 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
         if !positional.is_empty() {
             let (num, positional) = (num.into_iter(), positional.into_iter());
             body.extend(quote! {
-                ::schmargs::Argument::Positional(value) => {
+                ::schmargs::utils::DumbArgument::Positional(value) => {
+                    let value = value.as_ref();
                     match pos_count {
                     #(
                         #num => {#positional = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);},
@@ -355,13 +371,15 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
             });
         } else {
             body.extend(quote! {
-                ::schmargs::Argument::Positional(val) => {
+                ::schmargs::utils::DumbArgument::Positional(val) => {
                     ::core::result::Result::Err(::schmargs::SchmargsError::UnexpectedValue(val))?;
                 },
             });
         };
         body.extend(quote! {
-            arg => {::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(arg))?;}
+            ::schmargs::utils::DumbArgument::LongFlag(val) => {
+                ::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(::schmargs::Argument::LongFlag(val)))?;
+            }
         });
 
         body
@@ -393,6 +411,15 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
 
         while let Some(arg) = args.next() {
             match arg {
+                ::schmargs::utils::DumbArgument::ShortFlags(shorts) => {
+                    for short in AsRef::<str>::as_ref(shorts).strip_prefix("-").expect("Bug: expected short flag here").chars() {
+                        let short: char = short;
+                        match short {
+                            #short_flag_match_body
+                            _ => {todo!("No such short flag, return proper error");}
+                        }
+                    }
+                },
                 #match_body
             }
         }

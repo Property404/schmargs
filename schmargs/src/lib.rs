@@ -54,6 +54,7 @@
 //! assert_eq!(args.person, "Dagan");
 //! ```
 
+#[doc(hidden)]
 pub mod utils;
 pub mod wrappers;
 

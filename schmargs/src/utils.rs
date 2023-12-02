@@ -1,56 +1,52 @@
-//! Parsing utilities, mostly for internal use
-use crate::Argument;
+//! Parsing utilities for internal use
+#[derive(Debug, PartialEq, Eq)]
+#[doc(hidden)]
+pub enum DumbArgument<T> {
+    ShortFlags(T),
+    LongFlag(T),
+    Positional(T),
+}
 
 /// An iterator that parses out short flags (`-s`), long flags(`--long`), and values out of an
 /// iterator of arguments
-pub struct ArgumentIterator<'a, I: Iterator<Item = &'a str>> {
+#[doc(hidden)]
+pub struct DumbIterator<T: AsRef<str>, InputIterator: Iterator<Item = T>> {
     hit_double_dash: bool,
-    shortflags: Option<core::str::Chars<'a>>,
-    args: I,
+    args: InputIterator,
 }
 
-impl<'a, I: Iterator<Item = &'a str>> ArgumentIterator<'a, I> {
+impl<T: AsRef<str>, InputIterator: Iterator<Item = T>> DumbIterator<T, InputIterator> {
     /// Construct from list of logical arguments
-    pub fn from_args(args: I) -> Self {
+    pub fn from_args(args: InputIterator) -> Self {
         Self {
             hit_double_dash: false,
-            shortflags: None,
             args,
         }
     }
 }
 
-impl<'a, I: Iterator<Item = &'a str>> Iterator for ArgumentIterator<'a, I> {
-    type Item = Argument<&'a str>;
+impl<T: AsRef<str>, InputIterator: Iterator<Item = T>> Iterator for DumbIterator<T, InputIterator> {
+    type Item = DumbArgument<T>;
 
-    fn next(&mut self) -> Option<Argument<&'a str>> {
-        if let Some(ref mut shortflags) = &mut self.shortflags {
-            if let Some(flag) = shortflags.next() {
-                return Some(Argument::ShortFlag(flag));
-            } else {
-                self.shortflags = None;
-            }
-        }
-
+    fn next(&mut self) -> Option<DumbArgument<T>> {
         let Some(arg) = self.args.next() else {
             return None;
         };
 
         if self.hit_double_dash {
-            return Some(Argument::Positional(arg));
+            return Some(DumbArgument::Positional(arg));
         }
 
-        if let Some(arg) = arg.strip_prefix("--") {
-            if arg.is_empty() {
+        if let Some(stripped_arg) = arg.as_ref().strip_prefix("--") {
+            if stripped_arg.is_empty() {
                 self.hit_double_dash = true;
                 return self.next();
             }
-            Some(Argument::LongFlag(arg))
-        } else if let Some(flags) = arg.strip_prefix('-') {
-            self.shortflags = Some(flags.chars());
-            return self.next();
+            Some(DumbArgument::LongFlag(arg))
+        } else if arg.as_ref().starts_with('-') {
+            Some(DumbArgument::ShortFlags(arg))
         } else {
-            Some(Argument::Positional(arg))
+            Some(DumbArgument::Positional(arg))
         }
     }
 }
