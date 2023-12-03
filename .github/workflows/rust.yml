@@ -42,7 +42,7 @@ jobs:
         run: cargo doc --verbose
 
       - name: Install Cargo README
-        run: cargo install cargo-readme
+        run: cargo install cargo-readme --debug
 
       - name: Make sure README up-to-date
-        run: cargo readme > README.md && git diff --exit-code
+        run: cd schmargs && cargo readme > README.md && git diff --exit-code
