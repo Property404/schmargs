@@ -109,8 +109,13 @@ impl_on_integer!(i64);
 impl_on_integer!(i128);
 impl_on_integer!(isize);
 
-impl<'a> SchmargsField<&'a str> for &'a str {
-    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
+// Needed because other implementers might implement AsRef<str> in the future
+#[doc(hidden)]
+pub trait BullshitTrait {}
+impl BullshitTrait for &str {}
+
+impl<T: AsRef<str> + BullshitTrait> SchmargsField<T> for T {
+    fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
         Ok(val)
     }
 }
