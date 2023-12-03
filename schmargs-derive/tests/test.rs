@@ -256,3 +256,24 @@ fn optional_option() {
     let args = Args::parse("".split_whitespace()).unwrap();
     assert_eq!(args.puppy, None);
 }
+
+#[cfg(feature = "std")]
+mod with_feature_std {
+    use super::*;
+
+    #[test]
+    fn owned_string() {
+        #[derive(Schmargs)]
+        #[schmargs(iterates_over = String)]
+        /// Automatic puppy kicker
+        struct Args {
+            /// The puppy to kick
+            puppy: String,
+        }
+
+        let arguments = vec![String::from("Gus")];
+
+        let args = Args::parse(arguments.into_iter()).unwrap();
+        assert_eq!(args.puppy, String::from("Gus"));
+    }
+}

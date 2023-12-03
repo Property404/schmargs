@@ -1,11 +1,31 @@
-#![allow(unused_imports)]
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, Literal, TokenStream, TokenTree};
 use quote::quote;
-use std::collections::HashMap;
-use syn::{
-    self, spanned::Spanned, Attribute, Data, DataStruct, DeriveInput, Fields, Generics, Lifetime,
-    LifetimeParam,
-};
+use syn::Generics;
+
+pub(crate) trait TokenTreeExt {
+    fn unwrap_as_literal(self) -> Literal;
+    fn unwrap_as_ident(self) -> Ident;
+}
+
+impl TokenTreeExt for TokenTree {
+    fn unwrap_as_literal(self) -> Literal {
+        match self {
+            Self::Literal(val) => val,
+            _ => {
+                panic!("Expected literal, but unwrapped something else");
+            }
+        }
+    }
+
+    fn unwrap_as_ident(self) -> Ident {
+        match self {
+            Self::Ident(val) => val,
+            _ => {
+                panic!("Expected ident, but unwrapped something else");
+            }
+        }
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub(crate) enum CopyGenericsBoundOption {
@@ -14,10 +34,7 @@ pub(crate) enum CopyGenericsBoundOption {
 }
 
 // Copy inner generics, with or without trait bounds
-pub(crate) fn copy_generics(
-    generics: &Generics,
-    bounds: CopyGenericsBoundOption,
-) -> proc_macro2::TokenStream {
+pub(crate) fn copy_generics(generics: &Generics, bounds: CopyGenericsBoundOption) -> TokenStream {
     let mut gen = quote! {};
     let mut first = true;
     for generic in generics.lifetimes() {

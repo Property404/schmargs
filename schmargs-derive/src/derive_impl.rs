@@ -1,6 +1,7 @@
+use crate::utils::TokenTreeExt;
 use anyhow::{bail, Result};
 use proc_macro::{Span, TokenStream};
-use proc_macro2::{Literal, TokenTree};
+use proc_macro2::{Ident, Literal, TokenTree};
 use quote::quote;
 use std::collections::HashMap;
 use syn::{
@@ -10,8 +11,16 @@ use syn::{
 
 #[derive(Debug, Clone)]
 enum SchmargsAttribute {
-    ArgAttribute(ArgAttribute),
-    DocAttribute(DocAttribute),
+    Arg(ArgAttribute),
+    Doc(DocAttribute),
+    TopLevel(TopLevelAttribute),
+}
+
+#[derive(Debug, Clone)]
+struct TopLevelAttribute {
+    // What kind of string this should iterate over
+    // e.g. String or &str (default: &str)
+    iterates_over: Option<Ident>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +38,7 @@ struct DocAttribute {
 struct AttributeAggregate {
     doc: DocAttribute,
     arg: Option<ArgAttribute>,
+    top_level: Option<TopLevelAttribute>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,7 +51,7 @@ enum ArgKind {
 #[derive(Debug, Clone)]
 struct Arg {
     attr: AttributeAggregate,
-    ident: proc_macro2::Ident,
+    ident: Ident,
     is_bool: bool,
 }
 
@@ -87,8 +97,6 @@ impl Arg {
 fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
     match attr.meta {
         syn::Meta::List(ref list) => {
-            assert!(attr.path().is_ident("arg"));
-
             let tokens = list.parse_args::<proc_macro2::TokenStream>().unwrap();
 
             let mut map = HashMap::new();
@@ -96,11 +104,12 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
             let mut key = None;
             for token in tokens {
                 match token {
-                    TokenTree::Ident(ident) => {
-                        // Later we can remove this assert and add the ident as a value
-                        assert!(key.is_none(), "Cannot use identifier as value in attribute");
-
-                        key = Some(ident.to_string());
+                    ident @ TokenTree::Ident(_) => {
+                        if let Some(key) = key.take() {
+                            map.insert(key, Some(ident));
+                        } else {
+                            key = Some(ident.to_string());
+                        }
                     }
                     TokenTree::Punct(punct) => match punct.as_char() {
                         ',' => {
@@ -113,7 +122,7 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
                             bail!("Unexpected punctuation in attribute");
                         }
                     },
-                    TokenTree::Literal(literal) => {
+                    literal @ TokenTree::Literal(_) => {
                         if let Some(key) = key.take() {
                             map.insert(key, Some(literal));
                         } else {
@@ -127,13 +136,24 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
                 map.insert(key, None);
             }
 
-            let return_value = SchmargsAttribute::ArgAttribute(ArgAttribute {
-                short: map.remove("short"),
-                long: map.remove("long"),
-            });
+            let return_value = if attr.path().is_ident("arg") {
+                SchmargsAttribute::Arg(ArgAttribute {
+                    short: Some(map.remove("short").flatten().map(|v| v.unwrap_as_literal())),
+                    long: Some(map.remove("long").flatten().map(|v| v.unwrap_as_literal())),
+                })
+            } else if attr.path().is_ident("schmargs") {
+                SchmargsAttribute::TopLevel(TopLevelAttribute {
+                    iterates_over: map
+                        .remove("iterates_over")
+                        .expect("`iterates_over` expects a type")
+                        .map(|v| v.unwrap_as_ident()),
+                })
+            } else {
+                bail!("Unsupported attribute type");
+            };
 
             if !map.is_empty() {
-                bail!("Unknown argument to 'arg' attribute");
+                bail!("Unknown argument to attribute");
             }
 
             Ok(return_value)
@@ -146,7 +166,7 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
             let syn::Lit::Str(ref value) = value.lit else {
                 bail!("Expected str literal attribute value ( i.e. doc comment)");
             };
-            return Ok(SchmargsAttribute::DocAttribute(DocAttribute {
+            return Ok(SchmargsAttribute::Doc(DocAttribute {
                 value: value.value().trim().into(),
             }));
         }
@@ -157,19 +177,26 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
 fn parse_attributes(attrs: &[Attribute]) -> Result<AttributeAggregate> {
     let mut doc = None;
     let mut arg = None;
+    let mut top_level = None;
     for attr in attrs {
         match parse_attribute(attr)? {
-            SchmargsAttribute::DocAttribute(attr) => {
+            SchmargsAttribute::Doc(attr) => {
                 if doc.is_some() {
                     bail!("Was not expecting two doc attributes!");
                 }
                 doc = Some(attr);
             }
-            SchmargsAttribute::ArgAttribute(attr) => {
+            SchmargsAttribute::Arg(attr) => {
                 if arg.is_some() {
                     bail!("Was not expecting two arg attributes!");
                 }
                 arg = Some(attr);
+            }
+            SchmargsAttribute::TopLevel(attr) => {
+                if top_level.is_some() {
+                    bail!("Was not expecting two arg attributes!");
+                }
+                top_level = Some(attr);
             }
         }
     }
@@ -177,12 +204,14 @@ fn parse_attributes(attrs: &[Attribute]) -> Result<AttributeAggregate> {
     Ok(AttributeAggregate {
         doc: doc.expect("Missing doc attribute"),
         arg,
+        top_level,
     })
 }
 
 pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let name = input.ident;
-    let description = parse_attributes(&input.attrs)?.doc.value;
+    let attributes = parse_attributes(&input.attrs)?;
+    let description = attributes.doc.value;
     let default_lifetime = LifetimeParam::new(Lifetime::new(
         "'__schmargs_lifetime",
         Span::call_site().into(),
@@ -200,7 +229,14 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
         quote! { <#lifetime> }
     };
 
-    let string_type = quote! { &#lifetime str };
+    let string_type = if let Some(TopLevelAttribute {
+        iterates_over: Some(iterates_over),
+    }) = attributes.top_level
+    {
+        quote! { #iterates_over }
+    } else {
+        quote! { &#lifetime str }
+    };
     // Generics without the trait bounds
     let bare_generics = if generics.lt_token.is_some() {
         let inner = crate::utils::copy_generics(
@@ -237,7 +273,7 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
         .collect();
 
     let help_body = impl_help_body(&args);
-    let parse_body = impl_parse_body(&args);
+    let parse_body = impl_parse_body(&string_type, &args);
 
     let gen = quote! {
         impl #impl_generics ::schmargs::Schmargs <#string_type> for #name #bare_generics {
@@ -258,7 +294,10 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     Ok(gen.into())
 }
 
-fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
+fn impl_parse_body(
+    string_type: &proc_macro2::TokenStream,
+    args: &[Arg],
+) -> proc_macro2::TokenStream {
     let mut body = quote! {
         let mut args = ::schmargs::utils::DumbIterator::from_args(args);
     };
@@ -273,7 +312,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
             }
             ArgKind::Positional | ArgKind::Option => {
                 quote! {
-                    let mut #ident = ::schmargs::SchmargsField::<&str>::as_option();
+                    let mut #ident = ::schmargs::SchmargsField::<#string_type>::as_option();
                 }
             }
         });
@@ -297,8 +336,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                     body.extend(quote! { {
                                 match args.next() {
                                     Some(::schmargs::utils::DumbArgument::Positional(value)) => {
-                                        let value = value.as_ref();
-                                        #ident = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);
+                                        #ident = Some(::schmargs::SchmargsField::<#string_type>::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
                                 }
@@ -320,7 +358,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
             let ident = &arg.ident;
             if let Some(long) = arg.long() {
                 body.extend(
-                    quote! { ::schmargs::utils::DumbArgument::LongFlag(concat!("--",#long)) =>},
+                    quote! { ::schmargs::utils::DumbArgument::LongFlag(__schmargs_throwaway) if ::core::convert::AsRef::<str>::as_ref(&__schmargs_throwaway) == concat!("--",#long) =>},
                 );
                 if arg.kind() == ArgKind::Flag {
                     body.extend(quote! { {
@@ -331,8 +369,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
                     body.extend(quote! { {
                                 match args.next() {
                                     Some(::schmargs::utils::DumbArgument::Positional(value)) => {
-                                        let value = value.as_ref();
-                                        #ident = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);
+                                        #ident = Some(::schmargs::SchmargsField::<#string_type>::parse_str(value)?);
                                     },
                                     _=> {return Err(::schmargs::SchmargsError::ExpectedValue(stringify!(#ident)));}
                                 }
@@ -352,10 +389,9 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
             let (num, positional) = (num.into_iter(), positional.into_iter());
             body.extend(quote! {
                 ::schmargs::utils::DumbArgument::Positional(value) => {
-                    let value = value.as_ref();
                     match pos_count {
                     #(
-                        #num => {#positional = Some(::schmargs::SchmargsField::<&str>::parse_str(value)?);},
+                        #num => {#positional = Some(::schmargs::SchmargsField::<#string_type>::parse_str(value)?);},
                     )*
                         _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::UnexpectedValue(value));}
                     }
@@ -405,7 +441,7 @@ fn impl_parse_body(args: &[Arg]) -> proc_macro2::TokenStream {
         while let Some(arg) = args.next() {
             match arg {
                 ::schmargs::utils::DumbArgument::ShortFlags(shorts) => {
-                    for short in AsRef::<str>::as_ref(shorts).strip_prefix("-").expect("Bug: expected short flag here").chars() {
+                    for short in AsRef::<str>::as_ref(&shorts).strip_prefix("-").expect("Bug: expected short flag here").chars() {
                         let short: char = short;
                         match short {
                             #short_flag_match_body
