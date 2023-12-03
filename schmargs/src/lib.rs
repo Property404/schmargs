@@ -108,16 +108,16 @@ impl_on_integer!(i64);
 impl_on_integer!(i128);
 impl_on_integer!(isize);
 
-// Needed because other implementers might implement AsRef<str> in the future
 #[doc(hidden)]
-pub trait BullshitTrait {}
-impl BullshitTrait for &str {}
+pub trait StringLike: AsRef<str> {}
+impl StringLike for str {}
+impl StringLike for &str {}
 #[cfg(feature = "std")]
-impl BullshitTrait for &String {}
+impl StringLike for String {}
 #[cfg(feature = "std")]
-impl BullshitTrait for String {}
+impl StringLike for &String {}
 
-impl<T: AsRef<str> + BullshitTrait> SchmargsField<T> for T {
+impl<T: StringLike> SchmargsField<T> for T {
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
         Ok(val)
     }
