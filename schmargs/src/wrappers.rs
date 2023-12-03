@@ -8,7 +8,7 @@ use core::fmt;
 ///
 /// Without lifetimes
 /// ```
-/// use schmargs::{wrappers::ArgsWithHelp, Schmargs};
+/// use schmargs::{ArgsWithHelp, Schmargs};
 ///
 /// /// Program that barks
 /// #[derive(Schmargs)]
@@ -38,7 +38,7 @@ use core::fmt;
 ///
 /// With lifetimes
 /// ```
-/// use schmargs::{wrappers::ArgsWithHelp, Schmargs};
+/// use schmargs::{ArgsWithHelp, Schmargs};
 ///
 /// /// A very important program to greet somebody
 /// #[derive(Schmargs)]

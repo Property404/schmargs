@@ -56,10 +56,11 @@
 mod error;
 #[doc(hidden)]
 pub mod utils;
-pub mod wrappers;
+mod wrappers;
 
 pub use error::SchmargsError;
 pub use schmargs_derive::*;
+pub use wrappers::ArgsWithHelp;
 
 use core::fmt;
 
