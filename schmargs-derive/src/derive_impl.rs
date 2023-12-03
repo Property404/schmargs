@@ -198,6 +198,7 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
         quote! { <#lifetime> }
     };
 
+    let string_type = quote! { &#lifetime str };
     let struct_generics = {
         let mut gen = quote! { < };
         let mut first = true;
@@ -249,7 +250,7 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let parse_body = impl_parse_body(&args);
 
     let gen = quote! {
-        impl #impl_generics ::schmargs::Schmargs <&#lifetime str> for #name #struct_generics {
+        impl #impl_generics ::schmargs::Schmargs <#string_type> for #name #struct_generics {
             fn description() -> &'static str {
                 #description
             }
@@ -258,7 +259,7 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
                 #help_body
             }
 
-            fn parse(args: impl ::core::iter::Iterator<Item =  & #lifetime str>) -> ::core::result::Result<Self, ::schmargs::SchmargsError<&#lifetime str>> {
+            fn parse(args: impl ::core::iter::Iterator<Item = #string_type >) -> ::core::result::Result<Self, ::schmargs::SchmargsError<#string_type>> {
                 #parse_body
             }
         }
