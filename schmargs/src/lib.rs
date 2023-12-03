@@ -53,10 +53,10 @@
 //! assert_eq!(args.person, "Dagan");
 //! ```
 
+mod error;
 #[doc(hidden)]
 pub mod utils;
 pub mod wrappers;
-mod error;
 
 pub use error::SchmargsError;
 pub use schmargs_derive::*;
