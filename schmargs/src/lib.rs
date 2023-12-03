@@ -1,4 +1,4 @@
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![forbid(unsafe_code)]
 //! A `#![no_std]` argument parser
 //!
@@ -113,6 +113,10 @@ impl_on_integer!(isize);
 #[doc(hidden)]
 pub trait BullshitTrait {}
 impl BullshitTrait for &str {}
+#[cfg(feature = "std")]
+impl BullshitTrait for &String {}
+#[cfg(feature = "std")]
+impl BullshitTrait for String {}
 
 impl<T: AsRef<str> + BullshitTrait> SchmargsField<T> for T {
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
