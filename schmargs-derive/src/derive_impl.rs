@@ -181,8 +181,6 @@ fn parse_attributes(attrs: &[Attribute]) -> Result<AttributeAggregate> {
 }
 
 pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
     let name = input.ident;
     let description = parse_attributes(&input.attrs)?.doc.value;
     let default_lifetime = LifetimeParam::new(Lifetime::new(
