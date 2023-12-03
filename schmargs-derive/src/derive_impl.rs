@@ -191,7 +191,11 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let lifetime = generics.lifetimes().next().unwrap_or(&default_lifetime);
 
     let impl_generics = if generics.lt_token.is_some() {
-        quote! { #generics}
+        let generics = crate::utils::copy_generics(
+            &generics,
+            crate::utils::CopyGenericsBoundOption::WithBounds,
+        );
+        quote! { < #generics > }
     } else {
         quote! { <#lifetime> }
     };
@@ -199,26 +203,11 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let string_type = quote! { &#lifetime str };
     // Generics without the trait bounds
     let bare_generics = if generics.lt_token.is_some() {
-        let mut gen = quote! { < };
-        let mut first = true;
-        for generic in generics.lifetimes() {
-            if first {
-                first = false;
-            } else {
-                gen.extend(quote! { , });
-            };
-            gen.extend(quote! { #generic });
-        }
-        for generic in generics.type_params() {
-            let generic = &generic.ident;
-            if first {
-                first = false;
-            } else {
-                gen.extend(quote! { , });
-            };
-            gen.extend(quote! { #generic });
-        }
-        gen.extend(quote! { > });
+        let inner = crate::utils::copy_generics(
+            &generics,
+            crate::utils::CopyGenericsBoundOption::WithoutBounds,
+        );
+        let gen = quote! { < #inner > };
         gen
     } else {
         quote! {}
