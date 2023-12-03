@@ -41,7 +41,7 @@ impl<T: AsRef<str> + fmt::Debug + fmt::Display> Display for SchmargsError<T> {
 
 #[cfg(feature = "std")]
 impl<T: AsRef<str> + fmt::Debug + fmt::Display> std::error::Error for SchmargsError<T> {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::ParseInt(err) => Some(err),
             _ => None,
