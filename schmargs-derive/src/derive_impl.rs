@@ -21,6 +21,8 @@ struct TopLevelAttribute {
     // What kind of string this should iterate over
     // e.g. String or &str (default: &str)
     iterates_over: Option<Ident>,
+    // Name of the program
+    name: Option<Literal>,
 }
 
 #[derive(Debug, Clone)]
@@ -145,8 +147,12 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
                 SchmargsAttribute::TopLevel(TopLevelAttribute {
                     iterates_over: map
                         .remove("iterates_over")
-                        .expect("`iterates_over` expects a type")
+                        .map(|v| v.expect("`iterates_over` expects a type"))
                         .map(|v| v.unwrap_as_ident()),
+                    name: map
+                        .remove("name")
+                        .map(|v| v.expect("`name` expects a type"))
+                        .map(|v| v.unwrap_as_literal()),
                 })
             } else {
                 bail!("Unsupported attribute type");
@@ -209,7 +215,7 @@ fn parse_attributes(attrs: &[Attribute]) -> Result<AttributeAggregate> {
 }
 
 pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
-    let name = input.ident;
+    let struct_name = input.ident;
     let attributes = parse_attributes(&input.attrs)?;
     let description = attributes.doc.value;
     let default_lifetime = LifetimeParam::new(Lifetime::new(
@@ -230,13 +236,15 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     };
 
     let string_type = if let Some(TopLevelAttribute {
-        iterates_over: Some(iterates_over),
+        iterates_over: Some(ref iterates_over),
+        ..
     }) = attributes.top_level
     {
         quote! { #iterates_over }
     } else {
         quote! { &#lifetime str }
     };
+
     // Generics without the trait bounds
     let bare_generics = if generics.lt_token.is_some() {
         let inner = crate::utils::copy_generics(
@@ -275,8 +283,8 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let help_body = impl_help_body(&args);
     let parse_body = impl_parse_body(&string_type, &args);
 
-    let gen = quote! {
-        impl #impl_generics ::schmargs::Schmargs <#string_type> for #name #bare_generics {
+    let mut gen = quote! {
+        impl #impl_generics ::schmargs::Schmargs <#string_type> for #struct_name #bare_generics {
             fn description() -> &'static str {
                 #description
             }
@@ -290,6 +298,19 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
             }
         }
     };
+
+    if let Some(TopLevelAttribute {
+        name: Some(name), ..
+    }) = attributes.top_level
+    {
+        gen.extend(quote! {
+            impl #impl_generics ::core::fmt::Display for #struct_name #bare_generics {
+                 fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                     Self::write_help(formatter, #name)
+                 }
+            }
+        });
+    }
 
     Ok(gen.into())
 }
