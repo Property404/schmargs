@@ -407,7 +407,7 @@ fn impl_parse_body(
         };
         body.extend(quote! {
             ::schmargs::utils::DumbArgument::LongFlag(val) => {
-                ::core::result::Result::Err(::schmargs::SchmargsError::NoSuchOption(::schmargs::Argument::LongFlag(val)))?;
+                ::core::result::Result::Err(::schmargs::SchmargsError::NoSuchLongFlag(val))?;
             }
         });
 
@@ -447,10 +447,8 @@ fn impl_parse_body(
                             #short_flag_match_body
                             __schmargs_misc_short_flag => {
                                 return ::core::result::Result::Err(
-                                    ::schmargs::SchmargsError::NoSuchOption(
-                                        ::schmargs::Argument::ShortFlag(
+                                    ::schmargs::SchmargsError::NoSuchShortFlag(
                                             __schmargs_misc_short_flag
-                                        )
                                     )
                                 );
                             }

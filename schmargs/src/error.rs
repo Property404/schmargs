@@ -1,15 +1,22 @@
-use crate::Argument;
 use core::{
     fmt::{self, Display},
     num::ParseIntError,
 };
 
+/// The error type used in this crate
 #[derive(Debug)]
 pub enum SchmargsError<T: AsRef<str>> {
+    /// Transparent wrapper around [ParseIntError]
     ParseInt(ParseIntError),
-    NoSuchOption(Argument<T>),
+    /// Passed a short flag that doesn't exist
+    NoSuchShortFlag(char),
+    /// Passed a long flag that doesn't exist
+    NoSuchLongFlag(T),
+    /// Did not expect this value
     UnexpectedValue(T),
+    /// Expected a value to an argument
     ExpectedValue(&'static str),
+    /// Expected a zeroth argument - i.e the command name
     NoZerothArgument,
 }
 
@@ -23,14 +30,12 @@ impl<T: AsRef<str> + fmt::Debug + fmt::Display> Display for SchmargsError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
             Self::ParseInt(err) => err.fmt(f),
-            Self::NoSuchOption(val) => match val {
-                Argument::ShortFlag(val) => {
-                    write!(f, "'-{val}' is not a valid option")
-                }
-                Argument::LongFlag(val) | Argument::Positional(val) => {
-                    write!(f, "'{val}' is not a valid option")
-                }
-            },
+            Self::NoSuchShortFlag(val) => {
+                write!(f, "'-{val}' is not a valid option")
+            }
+            Self::NoSuchLongFlag(val) => {
+                write!(f, "'-{val}' is not a valid option")
+            }
             Self::UnexpectedValue(val) => {
                 write!(f, "Did not expect positional value: {val}")
             }

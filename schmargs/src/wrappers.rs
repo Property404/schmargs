@@ -1,5 +1,5 @@
 //! Schmargs wrappers that provide additional functionality, like `--version` and `--help` options
-use crate::{Argument, Schmargs, SchmargsError};
+use crate::{Schmargs, SchmargsError};
 use core::fmt;
 
 /// A wrapper that provides `--help` functionality
@@ -67,7 +67,9 @@ use core::fmt;
 /// }
 /// ```
 pub enum ArgsWithHelp<S: Sized> {
+    /// User passed the '-h' or '--help' flag
     Help,
+    /// Parsed arguments
     Args(S),
 }
 
@@ -100,16 +102,14 @@ impl<T: AsRef<str>, S: Schmargs<T>> Schmargs<T> for ArgsWithHelp<S> {
         match S::parse(args) {
             Ok(inner) => Ok(Self::Args(inner)),
             Err(inner) => {
-                if let SchmargsError::NoSuchOption(ref option) = inner {
-                    match option {
-                        Argument::LongFlag(v) if v.as_ref() == "--help" => {
-                            return Ok(Self::Help);
-                        }
-                        Argument::ShortFlag('h') => {
-                            return Ok(Self::Help);
-                        }
-                        _ => {}
+                match inner {
+                    SchmargsError::NoSuchShortFlag('h') => {
+                        return Ok(Self::Help);
                     }
+                    SchmargsError::NoSuchLongFlag(val) if val.as_ref() == "--help" => {
+                        return Ok(Self::Help);
+                    }
+                    _ => {}
                 }
                 Err(inner)
             }

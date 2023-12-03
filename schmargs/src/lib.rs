@@ -64,12 +64,14 @@ pub use wrappers::ArgsWithHelp;
 
 use core::fmt;
 
+/*
 #[derive(Debug, PartialEq, Eq)]
 pub enum Argument<T: AsRef<str>> {
     ShortFlag(char),
     LongFlag(T),
     Positional(T),
 }
+*/
 
 /// A field that can be parsed by Schmargs
 pub trait SchmargsField<T: AsRef<str>>: Sized {
