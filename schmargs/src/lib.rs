@@ -56,11 +56,12 @@
 #[doc(hidden)]
 pub mod utils;
 pub mod wrappers;
+mod error;
 
+pub use error::SchmargsError;
 pub use schmargs_derive::*;
 
 use core::fmt;
-use core::num::ParseIntError;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Argument<T: AsRef<str>> {
@@ -130,21 +131,6 @@ impl<U: AsRef<str>, T: SchmargsField<U>> SchmargsField<U> for Option<T> {
 
     fn as_option() -> Option<Self> {
         Some(None)
-    }
-}
-
-#[derive(Debug)]
-pub enum SchmargsError<T: AsRef<str>> {
-    ParseInt(ParseIntError),
-    NoSuchOption(Argument<T>),
-    UnexpectedValue(T),
-    ExpectedValue(&'static str),
-    NoZerothArgument,
-}
-
-impl<T: AsRef<str>> From<ParseIntError> for SchmargsError<T> {
-    fn from(error: ParseIntError) -> Self {
-        Self::ParseInt(error)
     }
 }
 
