@@ -23,9 +23,14 @@ impl<T: AsRef<str> + fmt::Debug + fmt::Display> Display for SchmargsError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
             Self::ParseInt(err) => err.fmt(f),
-            Self::NoSuchOption(val) => {
-                write!(f, "No such argument: {val:?}")
-            }
+            Self::NoSuchOption(val) => match val {
+                Argument::ShortFlag(val) => {
+                    write!(f, "'-{val}' is not a valid option")
+                }
+                Argument::LongFlag(val) | Argument::Positional(val) => {
+                    write!(f, "'{val}' is not a valid option")
+                }
+            },
             Self::UnexpectedValue(val) => {
                 write!(f, "Did not expect positional value: {val}")
             }
