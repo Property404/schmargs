@@ -197,7 +197,8 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     };
 
     let string_type = quote! { &#lifetime str };
-    let struct_generics = {
+    // Generics without the trait bounds
+    let bare_generics = {
         let mut gen = quote! { < };
         let mut first = true;
         for generic in generics.lifetimes() {
@@ -248,7 +249,7 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let parse_body = impl_parse_body(&args);
 
     let gen = quote! {
-        impl #impl_generics ::schmargs::Schmargs <#string_type> for #name #struct_generics {
+        impl #impl_generics ::schmargs::Schmargs <#string_type> for #name #bare_generics {
             fn description() -> &'static str {
                 #description
             }
