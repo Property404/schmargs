@@ -139,6 +139,7 @@ pub enum SchmargsError<T: AsRef<str>> {
     NoSuchOption(Argument<T>),
     UnexpectedValue(T),
     ExpectedValue(&'static str),
+    NoZerothArgument,
 }
 
 impl<T: AsRef<str>> From<ParseIntError> for SchmargsError<T> {
@@ -165,4 +166,20 @@ pub trait Schmargs<T: AsRef<str>>: Sized {
     }
     /// Construct from an iterator of argument
     fn parse(args: impl Iterator<Item = T>) -> Result<Self, SchmargsError<T>>;
+
+    /// Convenience function to parse from [std::env::args]
+    ///
+    /// Must be used with `#[schmargs(iterates_over=String)]`
+    ///
+    /// Returns a tuple of the command name, and the parse arguments
+    #[cfg(feature = "std")]
+    fn parse_from_env() -> Result<(String, Self), SchmargsError<T>>
+    where
+        T: From<String>,
+    {
+        let mut args = std::env::args();
+        let command = args.next().ok_or(SchmargsError::NoZerothArgument)?;
+        let args = args.map(|v| v.into());
+        Ok((command, Self::parse(args)?))
+    }
 }
