@@ -45,4 +45,4 @@ jobs:
         run: cargo install cargo-readme --debug
 
       - name: Make sure README up-to-date
-        run: cd schmargs && cargo readme > README.md && git diff --exit-code
+        run: cd schmargs && cargo readme > ../README.md && git diff --exit-code
