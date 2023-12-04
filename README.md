@@ -9,7 +9,7 @@ A argument parser that can be used with `#[no_std]`
 * Optional arguments
 * Multi-arg positional arguments and options with [std::vec::Vec]
 * Custom and default short and long flags
-* A [wrappers](wrappers::ArgsWithHelp) that allows for `--help` functionality
+* A [wrapper](ArgsWithHelp) that allows for `--help` functionality
 
 ## Todo
 
