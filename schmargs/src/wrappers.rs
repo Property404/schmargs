@@ -66,7 +66,8 @@ use core::fmt;
 ///     }
 /// }
 /// ```
-pub enum ArgsWithHelp<S: Sized> {
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
+pub enum ArgsWithHelp<S> {
     /// User passed the '-h' or '--help' flag
     Help,
     /// Parsed arguments
