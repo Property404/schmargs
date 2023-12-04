@@ -5,7 +5,7 @@ use core::{
 
 /// The error type used in this crate
 #[derive(Debug)]
-pub enum SchmargsError<T: AsRef<str>> {
+pub enum SchmargsError<T> {
     /// Transparent wrapper around [ParseIntError]
     ParseInt(ParseIntError),
     /// Passed a short flag that doesn't exist
@@ -20,13 +20,13 @@ pub enum SchmargsError<T: AsRef<str>> {
     NoZerothArgument,
 }
 
-impl<T: AsRef<str>> From<ParseIntError> for SchmargsError<T> {
+impl<T> From<ParseIntError> for SchmargsError<T> {
     fn from(error: ParseIntError) -> Self {
         Self::ParseInt(error)
     }
 }
 
-impl<T: AsRef<str> + fmt::Debug + fmt::Display> Display for SchmargsError<T> {
+impl<T: fmt::Display> Display for SchmargsError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
             Self::ParseInt(err) => err.fmt(f),
@@ -50,7 +50,7 @@ impl<T: AsRef<str> + fmt::Debug + fmt::Display> Display for SchmargsError<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: AsRef<str> + fmt::Debug + fmt::Display> std::error::Error for SchmargsError<T> {
+impl<T: fmt::Debug + fmt::Display> std::error::Error for SchmargsError<T> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::ParseInt(err) => Some(err),
