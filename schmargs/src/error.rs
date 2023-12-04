@@ -32,7 +32,7 @@ impl<T: fmt::Display> Display for SchmargsError<T> {
                 write!(f, "'-{val}' is not a valid option")
             }
             Self::NoSuchLongFlag(val) => {
-                write!(f, "'-{val}' is not a valid option")
+                write!(f, "'{val}' is not a valid option")
             }
             Self::UnexpectedValue(val) => {
                 write!(f, "Did not expect positional value: {val}")
