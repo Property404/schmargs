@@ -4,7 +4,7 @@
 //!
 //! # Features
 //!
-//! * `clap-derive`-like derive macro
+//! * `clap-derive`-inspired derive macro
 //! * `#![no_std]`-friendly
 //! * Optional arguments
 //! * Multi-arg positional arguments and options with [std::vec::Vec]
