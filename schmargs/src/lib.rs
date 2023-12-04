@@ -65,7 +65,7 @@ pub use wrappers::ArgsWithHelp;
 use core::fmt;
 
 /// A field that can be parsed by Schmargs
-pub trait SchmargsField<T: AsRef<str>>: Sized {
+pub trait SchmargsField<T>: Sized {
     /// Construct type from string
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>>;
     // Mechanism used to make `Option` types optional
@@ -118,7 +118,7 @@ impl<T: StringLike> SchmargsField<T> for T {
     }
 }
 
-impl<U: AsRef<str>, T: SchmargsField<U>> SchmargsField<U> for Option<T> {
+impl<U, T: SchmargsField<U>> SchmargsField<U> for Option<T> {
     fn parse_str(val: U) -> Result<Self, SchmargsError<U>> {
         Ok(Some(T::parse_str(val)?))
     }
