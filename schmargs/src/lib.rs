@@ -231,22 +231,26 @@ pub trait Schmargs<'a>: Sized {
 
     /// Get command name
     fn name() -> &'static str;
+
     /// Get command description
     fn description() -> &'static str;
+
     /// Write help text to `f`
     /// Returns the indent used, which will be greater than or equal to `min_indent`
     fn write_help_with_min_indent(
         f: impl fmt::Write,
         min_indent: usize,
     ) -> Result<usize, fmt::Error>;
-    /// Construct from an iterator of argument
+
+    /// Construct from an iterator of arguments
     fn parse(args: impl Iterator<Item = Self::Item>) -> Result<Self, SchmargsError<Self::Item>>;
 
     /// Convenience function to parse from [std::env::args]
     ///
-    /// Must be used with `#[schmargs(iterates_over=String)]`
+    /// Note that this will exit the program on error. If this is not the behavior you want, use
+    /// [Schmargs::parse]
     ///
-    /// Returns a tuple of the command name, and the parse arguments
+    /// Must be used with `#[schmargs(iterates_over=String)]`
     #[cfg(feature = "std")]
     fn parse_env() -> Self
     where
