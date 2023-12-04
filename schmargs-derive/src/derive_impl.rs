@@ -140,8 +140,10 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
 
             let return_value = if attr.path().is_ident("arg") {
                 SchmargsAttribute::Arg(ArgAttribute {
-                    short: Some(map.remove("short").flatten().map(|v| v.unwrap_as_literal())),
-                    long: Some(map.remove("long").flatten().map(|v| v.unwrap_as_literal())),
+                    short: map
+                        .remove("short")
+                        .map(|v| v.map(|v| v.unwrap_as_literal())),
+                    long: map.remove("long").map(|v| v.map(|v| v.unwrap_as_literal())),
                 })
             } else if attr.path().is_ident("schmargs") {
                 SchmargsAttribute::TopLevel(TopLevelAttribute {
