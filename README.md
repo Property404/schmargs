@@ -1,8 +1,74 @@
 # schmargs
 
-A `#![no_std]` argument parser
+A argument parser that can be used with `#[no_std]`
+
+## Features
+
+* `clap-derive`-like derive macro
+* `#![no_std]`-friendly
+* Optional arguments
+* Multi-arg positional arguments and options with [std::vec::Vec]
+* Custom and default short and long flags
+* A [wrappers](wrappers::ArgsWithHelp) that allows for `--help` functionality
+
+## Todo
+
+* Make sure idents created by proc macro are reasonably unique
+* Improve documentation
+
+## Helper Attributes
+
+### `schmargs`
+
+This is an optional attribute that should be specified at the top level.
+
+Arguments:
+
+* `name=<str literal>` - The name of the program. Defaults to the crate name.
+* `iterates_over=<type>` - The string type that's being iterated over. This should be the `Item`
+ associated type of the [core::iter::Iterator] type passed to [Schmargs::parse]. This defaults
+ to `&str` with an appropriate lifetime. If you're in an `std` environment and plan on parsing
+ arguments passed to your program with `Schmargs::parse_env`, `iterates_over` MUST be specified.
+
+### `args`
+
+This is an optional attribute that should be specified on an argument.
+
+Arguments:
+
+* `short[=<char literal>]` - The short flag of the argument. If no value is provided, it will
+ default to the first letter of the argument name.
+* `long[=<str literal>]` - The long flag of the argument. If no value is provided, it will
+ default to the the argument name.
 
 ## Example
+
+When using in an `std` environment, you generally want to specify `iterates_over` to be
+`String`, so you can iterate over [std::env::Args].
+
+```rust
+use schmargs::Schmargs;
+
+/// A program to yell at a cloud
+#[derive(Schmargs)]
+#[schmargs(iterates_over=String)]
+struct Args {
+    /// Yell volume, in decibels
+    #[arg(short, long)]
+    volume: Option<u64>,
+    /// Yell length, in nanoseconds
+    #[arg(short, long)]
+    length: Option<u64>,
+    /// Obscenities to yell
+    content: Vec<String>,
+}
+
+// This parses the arguments passed to the program
+let args = Args::parse_env();
+println!("{:?}", args.content);
+```
+
+## `#![no_std]` Examples
 
 ```rust
 use schmargs::Schmargs;
