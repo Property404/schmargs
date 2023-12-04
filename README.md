@@ -9,6 +9,7 @@ use schmargs::Schmargs;
 
 /// A simple memory dump program
 #[derive(Schmargs)]
+#[schmargs(name = "hexdump")]
 struct Args {
     /// Show color
     #[arg(short, long)]
@@ -40,6 +41,7 @@ use schmargs::Schmargs;
 
 /// A very important program to greet somebody
 #[derive(Schmargs)]
+#[schmargs(name = "greet")]
 struct Args<'a> {
     /// Should we kick the person's shins after greeting them?
     #[arg(short, long = "kick")]
