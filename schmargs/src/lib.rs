@@ -181,13 +181,23 @@ pub trait Schmargs<T: AsRef<str>>: Sized {
     ///
     /// Returns a tuple of the command name, and the parse arguments
     #[cfg(feature = "std")]
-    fn parse_from_env() -> Result<(String, Self), SchmargsError<T>>
+    fn parse_env() -> Self
     where
-        T: From<String>,
+        T: From<String> + fmt::Display,
     {
         let mut args = std::env::args();
-        let command = args.next().ok_or(SchmargsError::NoZerothArgument)?;
+        let Some(command) = args.next() else {
+            eprintln!("No arguments");
+            std::process::exit(1);
+        };
+
         let args = args.map(|v| v.into());
-        Ok((command, Self::parse(args)?))
+        match Self::parse(args) {
+            Ok(args) => args,
+            Err(err) => {
+                eprintln!("{command}: error: {err}");
+                std::process::exit(1);
+            }
+        }
     }
 }
