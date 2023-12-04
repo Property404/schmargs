@@ -12,6 +12,7 @@ use core::fmt;
 ///
 /// /// Program that barks
 /// #[derive(Schmargs)]
+/// #[schmargs(name = "greet")]
 /// struct BareArgs {
 ///     /// Should we meow instead?
 ///     #[arg(short, long)]
@@ -29,9 +30,7 @@ use core::fmt;
 ///         }
 ///     }
 ///     Args::Help => {
-///         let mut s = String::new();
-///         Args::write_help(&mut s, "greet").unwrap();
-///         println!("{s}");
+///         println!("{}", Args::Help);
 ///     }
 /// }
 /// ```
@@ -42,6 +41,7 @@ use core::fmt;
 ///
 /// /// A very important program to greet somebody
 /// #[derive(Schmargs)]
+/// #[schmargs(name = "greet")]
 /// struct BareArgs<'a> {
 ///     /// Should we kick the person's shins after greeting them?
 ///     #[arg(short, long = "kick")]
@@ -60,9 +60,7 @@ use core::fmt;
 ///         }
 ///     }
 ///     Args::Help => {
-///         let mut s = String::new();
-///         Args::write_help(&mut s, "greet").unwrap();
-///         println!("{s}");
+///         println!("{}", Args::Help);
 ///     }
 /// }
 /// ```
@@ -74,21 +72,29 @@ pub enum ArgsWithHelp<S> {
     Args(S),
 }
 
-impl<T: AsRef<str>, S: Schmargs<T>> Schmargs<T> for ArgsWithHelp<S> {
+impl<'a, S: Schmargs<'a>> Schmargs<'a> for ArgsWithHelp<S>
+where
+    S::Item: AsRef<str>,
+{
+    type Item = S::Item;
+
+    fn name() -> &'static str {
+        S::name()
+    }
+
     fn description() -> &'static str {
         S::description()
     }
 
     fn write_help_with_min_indent(
         mut f: impl fmt::Write,
-        name: impl AsRef<str>,
         min_indent: usize,
     ) -> Result<usize, fmt::Error> {
         let prefix = "-h, --help";
         let min_indent = core::cmp::max(min_indent, prefix.len() + 1);
         let min_indent = core::cmp::max(
             min_indent,
-            S::write_help_with_min_indent(&mut f, name, min_indent)?,
+            S::write_help_with_min_indent(&mut f, min_indent)?,
         );
         writeln!(f)?;
         write!(f, "{}", prefix)?;
@@ -99,7 +105,7 @@ impl<T: AsRef<str>, S: Schmargs<T>> Schmargs<T> for ArgsWithHelp<S> {
         Ok(min_indent)
     }
 
-    fn parse(args: impl Iterator<Item = T>) -> Result<Self, SchmargsError<T>> {
+    fn parse(args: impl Iterator<Item = Self::Item>) -> Result<Self, SchmargsError<Self::Item>> {
         match S::parse(args) {
             Ok(inner) => Ok(Self::Args(inner)),
             Err(inner) => {
@@ -115,5 +121,15 @@ impl<T: AsRef<str>, S: Schmargs<T>> Schmargs<T> for ArgsWithHelp<S> {
                 Err(inner)
             }
         }
+    }
+}
+
+impl<'a, S: Schmargs<'a>> fmt::Display for ArgsWithHelp<S>
+where
+    <S as Schmargs<'a>>::Item: AsRef<str>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Self::write_help_with_min_indent(f, 0)?;
+        Ok(())
     }
 }

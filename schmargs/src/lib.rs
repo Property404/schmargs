@@ -9,6 +9,7 @@
 //!
 //! /// A simple memory dump program
 //! #[derive(Schmargs)]
+//! #[schmargs(name = "hexdump")]
 //! struct Args {
 //!     /// Show color
 //!     #[arg(short, long)]
@@ -40,6 +41,7 @@
 //!
 //! /// A very important program to greet somebody
 //! #[derive(Schmargs)]
+//! #[schmargs(name = "greet")]
 //! struct Args<'a> {
 //!     /// Should we kick the person's shins after greeting them?
 //!     #[arg(short, long = "kick")]
@@ -157,23 +159,22 @@ impl<U, T: SchmargsField<U>> SchmargsField<U> for Option<T> {
 }
 
 /// An argument parser
-pub trait Schmargs<T: AsRef<str>>: Sized {
+pub trait Schmargs<'a>: Sized {
+    /// The item [Schmargs::parse] will iterate over. This is typically &str or [String]
+    type Item;
+
+    /// Get command name
+    fn name() -> &'static str;
     /// Get command description
     fn description() -> &'static str;
     /// Write help text to `f`
     /// Returns the indent used, which will be greater than or equal to `min_indent`
     fn write_help_with_min_indent(
         f: impl fmt::Write,
-        name: impl AsRef<str>,
         min_indent: usize,
     ) -> Result<usize, fmt::Error>;
-    /// Write help text to `f`
-    fn write_help(f: impl fmt::Write, name: impl AsRef<str>) -> fmt::Result {
-        Self::write_help_with_min_indent(f, name, 0)?;
-        Ok(())
-    }
     /// Construct from an iterator of argument
-    fn parse(args: impl Iterator<Item = T>) -> Result<Self, SchmargsError<T>>;
+    fn parse(args: impl Iterator<Item = Self::Item>) -> Result<Self, SchmargsError<Self::Item>>;
 
     /// Convenience function to parse from [std::env::args]
     ///
@@ -183,19 +184,14 @@ pub trait Schmargs<T: AsRef<str>>: Sized {
     #[cfg(feature = "std")]
     fn parse_env() -> Self
     where
-        T: From<String> + fmt::Display,
+        Self::Item: From<String> + fmt::Display,
     {
-        let mut args = std::env::args();
-        let Some(command) = args.next() else {
-            eprintln!("No arguments");
-            std::process::exit(1);
-        };
+        let args = std::env::args().skip(1).map(Into::into);
 
-        let args = args.map(|v| v.into());
         match Self::parse(args) {
             Ok(args) => args,
             Err(err) => {
-                eprintln!("{command}: error: {err}");
+                eprintln!("{}: error: {err}", Self::name());
                 std::process::exit(1);
             }
         }

@@ -219,6 +219,14 @@ fn parse_attributes(attrs: &[Attribute]) -> Result<AttributeAggregate> {
 pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let struct_name = input.ident;
     let attributes = parse_attributes(&input.attrs)?;
+    let command_name = attributes
+        .top_level
+        .clone()
+        .and_then(|v| v.name.clone())
+        .map(|v| quote! {#v})
+        .unwrap_or_else(|| {
+            quote! {env!("CARGO_PKG_NAME")}
+        });
     let description = attributes.doc.value;
     let default_lifetime = LifetimeParam::new(Lifetime::new(
         "'__schmargs_lifetime",
@@ -286,12 +294,18 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     let parse_body = impl_parse_body(&string_type, &args);
 
     let mut gen = quote! {
-        impl #impl_generics ::schmargs::Schmargs <#string_type> for #struct_name #bare_generics {
+        impl #impl_generics ::schmargs::Schmargs<#lifetime> for #struct_name #bare_generics {
+            type Item = #string_type;
+
+            fn name() -> &'static str {
+                #command_name
+            }
+
             fn description() -> &'static str {
                 #description
             }
 
-            fn write_help_with_min_indent(mut f: impl ::core::fmt::Write, name: impl ::core::convert::AsRef<str>, mut min_indent: usize) -> Result<usize, ::core::fmt::Error> {
+            fn write_help_with_min_indent(mut f: impl ::core::fmt::Write, mut min_indent: usize) -> Result<usize, ::core::fmt::Error> {
                 #help_body
             }
 
@@ -301,18 +315,14 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
         }
     };
 
-    if let Some(TopLevelAttribute {
-        name: Some(name), ..
-    }) = attributes.top_level
-    {
-        gen.extend(quote! {
-            impl #impl_generics ::core::fmt::Display for #struct_name #bare_generics {
-                 fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                     Self::write_help(formatter, #name)
-                 }
+    gen.extend(quote! {
+        impl #impl_generics ::core::fmt::Display for #struct_name #bare_generics {
+            fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                Self::write_help_with_min_indent(formatter, 0)?;
+                Ok(())
             }
-        });
-    }
+        }
+    });
 
     Ok(gen.into())
 }
@@ -505,7 +515,7 @@ fn impl_help_body(args: &[Arg]) -> proc_macro2::TokenStream {
     body.extend(quote! {
         writeln!(f, "{}", Self::description())?;
         writeln!(f)?;
-        write!(f, "Usage: {}", name.as_ref())?;
+        write!(f, "Usage: {}", Self::name())?;
     });
 
     if args.iter().any(|v| v.kind() == ArgKind::Flag) {
