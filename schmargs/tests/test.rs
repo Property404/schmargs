@@ -257,6 +257,21 @@ fn optional_option() {
     assert_eq!(args.puppy, None);
 }
 
+#[test]
+fn name_and_description() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        #[arg(short, long)]
+        _puppy: Option<&'a str>,
+    }
+
+    assert_eq!(Args::name(), "pupkick");
+    assert_eq!(Args::description(), "Automatic puppy kicker");
+}
+
 #[cfg(feature = "std")]
 mod with_feature_std {
     use super::*;
