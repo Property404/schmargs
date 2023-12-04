@@ -492,10 +492,12 @@ fn impl_parse_body(
 
 fn impl_help_body(args: &[Arg]) -> proc_macro2::TokenStream {
     let mut body = {
-        let ident = args.iter().map(|v| &v.ident);
+        let long = args
+            .iter()
+            .map(|v| v.long().map(|v| v.to_string()).unwrap_or_default());
         quote! {
             #(
-                min_indent = ::core::cmp::max(min_indent, "-h, --".len() + stringify!(#ident).len() + 1);
+                min_indent = ::core::cmp::max(min_indent, "-h, --".len() + #long.len() + 1);
             )*
         }
     };
