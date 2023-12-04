@@ -11,4 +11,4 @@ schmargs-derive = { version = "0.0.0", path = "../schmargs-derive" }
 
 [features]
 default = ["std"]
-std = ["schmargs-derive/std"]
+std = []
