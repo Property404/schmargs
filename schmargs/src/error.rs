@@ -16,8 +16,6 @@ pub enum SchmargsError<T> {
     UnexpectedValue(T),
     /// Expected a value to an argument
     ExpectedValue(&'static str),
-    /// Expected a zeroth argument - i.e the command name
-    NoZerothArgument,
 }
 
 impl<T> From<ParseIntError> for SchmargsError<T> {
@@ -41,9 +39,6 @@ impl<T: fmt::Display> Display for SchmargsError<T> {
             }
             Self::ExpectedValue(val) => {
                 write!(f, "Expected value for {val}")
-            }
-            Self::NoZerothArgument => {
-                write!(f, "No zeroth argument")
             }
         }
     }
