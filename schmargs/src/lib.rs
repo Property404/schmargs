@@ -68,6 +68,10 @@ use core::fmt;
 pub trait SchmargsField<T>: Sized {
     /// Construct type from string
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>>;
+    /// Construct type from iterator
+    fn parse_it(val: T, _it: impl Iterator<Item = T>) -> Result<Self, SchmargsError<T>> {
+        Self::parse_str(val)
+    }
     // Mechanism used to make `Option` types optional
     #[doc(hidden)]
     fn as_option() -> Option<Self> {
@@ -115,6 +119,30 @@ impl StringLike for &String {}
 impl<T: StringLike> SchmargsField<T> for T {
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
         Ok(val)
+    }
+}
+
+#[cfg(feature = "std")]
+impl SchmargsField<String> for Vec<String> {
+    fn parse_str(val: String) -> Result<Self, SchmargsError<String>> {
+        let mut vec = Vec::with_capacity(1);
+        for val in val.split(',') {
+            vec.push(val.into());
+        }
+        Ok(vec)
+    }
+
+    fn parse_it(
+        val: String,
+        it: impl Iterator<Item = String>,
+    ) -> Result<Self, SchmargsError<String>> {
+        let hint = it.size_hint();
+        let mut vec = Vec::with_capacity(1 + hint.1.unwrap_or(hint.0));
+        vec.push(val);
+        for val in it {
+            vec.push(val);
+        }
+        Ok(vec)
     }
 }
 

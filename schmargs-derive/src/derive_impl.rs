@@ -412,7 +412,7 @@ fn impl_parse_body(
                 ::schmargs::utils::DumbArgument::Positional(value) => {
                     match pos_count {
                     #(
-                        #num => {#positional = Some(::schmargs::SchmargsField::<#string_type>::parse_str(value)?);},
+                        #num => {#positional = Some(::schmargs::SchmargsField::<#string_type>::parse_it(value, (&mut args).map(|v|v.into_inner()))?);},
                     )*
                         _ => {return ::core::result::Result::Err(::schmargs::SchmargsError::UnexpectedValue(value));}
                     }

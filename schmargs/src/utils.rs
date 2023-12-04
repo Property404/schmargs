@@ -7,6 +7,14 @@ pub enum DumbArgument<T> {
     Positional(T),
 }
 
+impl<T> DumbArgument<T> {
+    pub fn into_inner(self) -> T {
+        match self {
+            Self::ShortFlags(inner) | Self::LongFlag(inner) | Self::Positional(inner) => inner,
+        }
+    }
+}
+
 /// An iterator that parses out short flags (`-s`), long flags(`--long`), and values out of an
 /// iterator of arguments
 #[doc(hidden)]

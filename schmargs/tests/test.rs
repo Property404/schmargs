@@ -276,4 +276,41 @@ mod with_feature_std {
         let args = Args::parse(arguments.into_iter()).unwrap();
         assert_eq!(args.puppy, String::from("Gus"));
     }
+
+    #[test]
+    fn nonpositional_string_vec_by_commas() {
+        #[derive(Schmargs)]
+        #[schmargs(iterates_over = String)]
+        /// Automatic puppy kicker
+        struct Args {
+            /// Which puppies to kick
+            #[arg(short, long)]
+            puppies: Vec<String>,
+        }
+
+        let arguments = "--puppies Billy,Samantha,Muffin"
+            .split_whitespace()
+            .map(ToString::to_string);
+
+        let args = Args::parse(arguments).unwrap();
+        assert_eq!(args.puppies, vec!["Billy", "Samantha", "Muffin"]);
+    }
+
+    #[test]
+    fn positional_string_vec() {
+        #[derive(Schmargs)]
+        #[schmargs(iterates_over = String)]
+        /// Automatic puppy kicker
+        struct Args {
+            /// Which puppies to kick
+            puppies: Vec<String>,
+        }
+
+        let arguments = "Billy Samantha Muffin"
+            .split_whitespace()
+            .map(ToString::to_string);
+
+        let args = Args::parse(arguments).unwrap();
+        assert_eq!(args.puppies, vec!["Billy", "Samantha", "Muffin"]);
+    }
 }
