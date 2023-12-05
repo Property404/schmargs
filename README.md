@@ -120,3 +120,5 @@ let args = Args::parse("Dagan".split_whitespace()).unwrap();
 assert_eq!(args.kick_shins, false);
 assert_eq!(args.person, "Dagan");
 ```
+
+License: MIT OR Apache-2.0
