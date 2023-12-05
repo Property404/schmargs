@@ -15,6 +15,8 @@
 //!
 //! * Make sure idents created by proc macro are reasonably unique
 //! * Improve documentation
+//! * Add usage text
+//! * Improve and write tests for help formatting
 //!
 //! # Helper Attributes
 //!
@@ -237,6 +239,21 @@ pub trait Schmargs<'a>: Sized {
 
     /// Write help text to `f`
     /// Returns the indent used, which will be greater than or equal to `min_indent`
+    ///
+    /// Unless you're implementing [Schmargs], you most likely want to use the
+    /// [Display](core::fmt::Display) impl:
+    ///
+    /// ```
+    /// use schmargs::Schmargs;
+    ///
+    /// /// Fake program
+    /// #[derive(Schmargs)]
+    /// struct Args {}
+    ///
+    /// let args = Args::parse("".split_whitespace()).unwrap();
+    ///
+    /// println!("{args}");
+    /// ```
     fn write_help_with_min_indent(
         f: impl fmt::Write,
         min_indent: usize,

@@ -15,6 +15,8 @@ A argument parser that can be used with `#[no_std]`
 
 * Make sure idents created by proc macro are reasonably unique
 * Improve documentation
+* Add usage text
+* Improve and write tests for help formatting
 
 ## Helper Attributes
 
