@@ -231,14 +231,14 @@ pub trait Schmargs<'a>: Sized {
     /// The item [Schmargs::parse] will iterate over. This is typically &str or [String]
     type Item;
 
-    /// Get command name
-    fn name() -> &'static str;
+    /// Name of the command
+    const NAME: &'static str;
 
-    /// Get command version
-    fn version() -> &'static str;
+    /// Command version
+    const VERSION: &'static str;
 
-    /// Get command description
-    fn description() -> &'static str;
+    /// Command description
+    const DESCRIPTION: &'static str;
 
     /// Write help text to `f`
     /// Returns the indent used, which will be greater than or equal to `min_indent`
@@ -281,7 +281,7 @@ pub trait Schmargs<'a>: Sized {
         match Self::parse(args) {
             Ok(args) => args,
             Err(err) => {
-                eprintln!("{}: error: {err}", Self::name());
+                eprintln!("{}: error: {err}", Self::NAME);
                 std::process::exit(1);
             }
         }

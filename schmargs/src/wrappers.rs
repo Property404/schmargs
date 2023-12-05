@@ -19,17 +19,9 @@ where
 {
     type Item = <W::SchmargsType as Schmargs<'a>>::Item;
 
-    fn name() -> &'static str {
-        W::SchmargsType::name()
-    }
-
-    fn version() -> &'static str {
-        W::SchmargsType::version()
-    }
-
-    fn description() -> &'static str {
-        W::SchmargsType::description()
-    }
+    const NAME: &'static str = W::SchmargsType::NAME;
+    const VERSION: &'static str = W::SchmargsType::VERSION;
+    const DESCRIPTION: &'static str = W::SchmargsType::DESCRIPTION;
 
     fn write_help_with_min_indent(
         mut f: impl fmt::Write,
@@ -195,7 +187,7 @@ where
 ///     }
 ///     // Print the version
 ///     Args::Args(ArgsWithVersion::Version) => {
-///         println!("{}", Args::version());
+///         println!("{}", Args::VERSION);
 ///     }
 ///     // Print help
 ///     Args::Help => {

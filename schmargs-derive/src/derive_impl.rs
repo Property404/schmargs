@@ -297,17 +297,9 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
         impl #impl_generics ::schmargs::Schmargs<#lifetime> for #struct_name #bare_generics {
             type Item = #string_type;
 
-            fn name() -> &'static str {
-                #command_name
-            }
-
-            fn version() -> &'static str {
-                env!("CARGO_PKG_VERSION")
-            }
-
-            fn description() -> &'static str {
-                #description
-            }
+            const NAME: &'static str = #command_name;
+            const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+            const DESCRIPTION: &'static str = #description;
 
             fn write_help_with_min_indent(mut f: impl ::core::fmt::Write, mut min_indent: usize) -> Result<usize, ::core::fmt::Error> {
                 #help_body
@@ -517,9 +509,9 @@ fn impl_help_body(args: &[Arg]) -> proc_macro2::TokenStream {
     };
 
     body.extend(quote! {
-        writeln!(f, "{}", Self::description())?;
+        writeln!(f, "{}", Self::DESCRIPTION)?;
         writeln!(f)?;
-        write!(f, "Usage: {}", Self::name())?;
+        write!(f, "Usage: {}", Self::NAME)?;
     });
 
     if args.iter().any(|v| v.kind() == ArgKind::Flag) {

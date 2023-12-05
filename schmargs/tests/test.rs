@@ -132,18 +132,6 @@ fn signed_integers() {
 }
 
 #[test]
-fn description() {
-    #[derive(Schmargs)]
-    /// Automatic puppy kicker
-    struct Args {
-        /// How many puppies to kick
-        _puppies: i8,
-    }
-
-    assert_eq!(Args::description(), "Automatic puppy kicker");
-}
-
-#[test]
 fn help_arg() {
     use schmargs::ArgsWithHelp;
 
@@ -268,8 +256,8 @@ fn name_and_description() {
         _puppy: Option<&'a str>,
     }
 
-    assert_eq!(Args::name(), "pupkick");
-    assert_eq!(Args::description(), "Automatic puppy kicker");
+    assert_eq!(Args::NAME, "pupkick");
+    assert_eq!(Args::DESCRIPTION, "Automatic puppy kicker");
 }
 
 #[cfg(feature = "std")]
