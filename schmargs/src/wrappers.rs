@@ -35,15 +35,15 @@ where
         mut f: impl fmt::Write,
         min_indent: usize,
     ) -> Result<usize, fmt::Error> {
-        let prefix = "-h, ";
-        let min_indent = core::cmp::max(min_indent, W::LONG_OPTION.len() + prefix.len() + 1);
+        let prefix_len = "-h, ".len() + W::LONG_OPTION.len();
+        let min_indent = core::cmp::max(min_indent, prefix_len + 1);
         let min_indent = core::cmp::max(
             min_indent,
             W::SchmargsType::write_help_with_min_indent(&mut f, min_indent)?,
         );
         writeln!(f)?;
         write!(f, "-{}, {}", W::SHORT_OPTION, W::LONG_OPTION)?;
-        for _ in 0..(min_indent - prefix.len()) {
+        for _ in 0..(min_indent - prefix_len) {
             write!(f, " ")?;
         }
         write!(f, "{}", W::DESCRIPTION)?;
