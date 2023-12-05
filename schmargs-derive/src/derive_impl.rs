@@ -301,6 +301,10 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
                 #command_name
             }
 
+            fn version() -> &'static str {
+                env!("CARGO_PKG_VERSION")
+            }
+
             fn description() -> &'static str {
                 #description
             }

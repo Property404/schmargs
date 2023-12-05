@@ -130,7 +130,7 @@ mod wrappers;
 
 pub use error::SchmargsError;
 pub use schmargs_derive::*;
-pub use wrappers::ArgsWithHelp;
+pub use wrappers::{ArgsWithHelp, ArgsWithVersion};
 
 use core::fmt;
 
@@ -233,6 +233,9 @@ pub trait Schmargs<'a>: Sized {
 
     /// Get command name
     fn name() -> &'static str;
+
+    /// Get command version
+    fn version() -> &'static str;
 
     /// Get command description
     fn description() -> &'static str;
