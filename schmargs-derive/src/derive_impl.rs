@@ -1,7 +1,6 @@
 use crate::utils::TokenTreeExt;
 use anyhow::{bail, Result};
-use proc_macro::{Span, TokenStream};
-use proc_macro2::{Ident, Literal, TokenTree};
+use proc_macro2::{Ident, Literal, Span, TokenStream, TokenTree};
 use quote::quote;
 use std::collections::HashMap;
 use syn::{
@@ -99,7 +98,7 @@ impl Arg {
 fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
     match attr.meta {
         syn::Meta::List(ref list) => {
-            let tokens = list.parse_args::<proc_macro2::TokenStream>().unwrap();
+            let tokens = list.parse_args::<TokenStream>().unwrap();
 
             let mut map = HashMap::new();
 
@@ -216,7 +215,7 @@ fn parse_attributes(attrs: &[Attribute]) -> Result<AttributeAggregate> {
     })
 }
 
-pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
+pub fn schmargs_derive_impl(input: DeriveInput) -> Result<proc_macro::TokenStream> {
     let struct_name = input.ident;
     let attributes = parse_attributes(&input.attrs)?;
     let command_name = attributes
@@ -228,10 +227,8 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
             quote! {env!("CARGO_PKG_NAME")}
         });
     let description = attributes.doc.value;
-    let default_lifetime = LifetimeParam::new(Lifetime::new(
-        "'__schmargs_lifetime",
-        Span::call_site().into(),
-    ));
+    let default_lifetime =
+        LifetimeParam::new(Lifetime::new("'__schmargs_lifetime", Span::call_site()));
     let generics = input.generics.clone();
     let lifetime = generics.lifetimes().next().unwrap_or(&default_lifetime);
 
@@ -324,10 +321,7 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
     Ok(gen.into())
 }
 
-fn impl_parse_body(
-    string_type: &proc_macro2::TokenStream,
-    args: &[Arg],
-) -> proc_macro2::TokenStream {
+fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
     let mut body = quote! {
         let mut args = ::schmargs::utils::DumbIterator::from_args(args);
     };
@@ -349,7 +343,7 @@ fn impl_parse_body(
     }
 
     let short_flag_match_body = {
-        let mut body: proc_macro2::TokenStream = Default::default();
+        let mut body: TokenStream = Default::default();
         for arg in args
             .iter()
             .filter(|a| a.kind() == ArgKind::Flag || a.kind() == ArgKind::Option)
@@ -380,7 +374,7 @@ fn impl_parse_body(
     };
 
     let match_body = {
-        let mut body: proc_macro2::TokenStream = Default::default();
+        let mut body: TokenStream = Default::default();
         for arg in args
             .iter()
             .filter(|a| a.kind() == ArgKind::Flag || a.kind() == ArgKind::Option)
@@ -445,7 +439,7 @@ fn impl_parse_body(
     };
 
     let return_body = {
-        let mut body: proc_macro2::TokenStream = Default::default();
+        let mut body: TokenStream = Default::default();
 
         for arg in args {
             let ident = &arg.ident;
@@ -497,7 +491,7 @@ fn impl_parse_body(
     body
 }
 
-fn impl_help_body(args: &[Arg]) -> proc_macro2::TokenStream {
+fn impl_help_body(args: &[Arg]) -> TokenStream {
     let mut body = {
         let long = args
             .iter()
