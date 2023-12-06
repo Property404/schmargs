@@ -311,10 +311,11 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<TokenStream> {
         }
     };
 
+    // Allow showing help with `println!("{args}")
     gen.extend(quote! {
         impl #impl_generics ::core::fmt::Display for #struct_name #bare_generics {
-            fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                Self::write_help_with_min_indent(formatter, 0)?;
+            fn fmt(&self, __schmargs_formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                Self::write_help_with_min_indent(__schmargs_formatter, 0)?;
                 Ok(())
             }
         }
