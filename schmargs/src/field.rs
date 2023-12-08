@@ -71,11 +71,11 @@ impl<T: StringLike> SchmargsField<T> for T {
 }
 
 #[cfg(feature = "std")]
-impl SchmargsField<String> for Vec<String> {
+impl<Item: SchmargsField<String>> SchmargsField<String> for Vec<Item> {
     fn parse_str(val: String) -> Result<Self, SchmargsError<String>> {
         let mut vec = Vec::with_capacity(1);
         for val in val.split(',') {
-            vec.push(val.into());
+            vec.push(SchmargsField::parse_str(val.into())?);
         }
         Ok(vec)
     }
@@ -85,10 +85,10 @@ impl SchmargsField<String> for Vec<String> {
         it: impl Iterator<Item = String>,
     ) -> Result<Self, SchmargsError<String>> {
         let hint = it.size_hint();
-        let mut vec = Vec::with_capacity(1 + hint.1.unwrap_or(hint.0));
-        vec.push(val);
+        let mut vec = Vec::with_capacity(1 + hint.0);
+        vec.push(SchmargsField::parse_str(val)?);
         for val in it {
-            vec.push(val);
+            vec.push(SchmargsField::parse_str(val)?);
         }
         Ok(vec)
     }

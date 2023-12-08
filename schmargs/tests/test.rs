@@ -306,14 +306,17 @@ mod with_feature_std {
             /// Which puppies to kick
             #[arg(short, long)]
             puppies: Vec<String>,
+            /// Numbers to shout while kicking puppies
+            numbers: Vec<usize>,
         }
 
-        let arguments = "--puppies Billy,Samantha,Muffin"
+        let arguments = "--puppies Billy,Samantha,Muffin 3 1 4 1 5"
             .split_whitespace()
             .map(ToString::to_string);
 
         let args = Args::parse(arguments).unwrap();
         assert_eq!(args.puppies, vec!["Billy", "Samantha", "Muffin"]);
+        assert_eq!(args.numbers, vec![3, 1, 4, 1, 5]);
     }
 
     #[test]
