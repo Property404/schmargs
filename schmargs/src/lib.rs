@@ -89,7 +89,7 @@
 //!     #[arg(short, long)]
 //!     group: Option<u8>, // this is optional
 //!     /// Starting memory address
-//!     start: usize, // required positional argument
+//!     start: *const u8, // required positional argument
 //!     /// Number of bytes to read
 //!     len: usize, // required positional argument
 //! }
@@ -98,7 +98,7 @@
 //! assert_eq!(args.color, false);
 //! assert_eq!(args.no_null_check, true);
 //! assert_eq!(args.group, Some(8));
-//! assert_eq!(args.start, 0x40000000);
+//! assert_eq!(args.start, 0x40000000 as *const u8);
 //! assert_eq!(args.len, 256);
 //! ```
 //!
