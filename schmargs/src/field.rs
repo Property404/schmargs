@@ -69,19 +69,16 @@ impl SchmargsField<String> for String {
 }
 
 #[cfg(feature = "std")]
-impl<Item: SchmargsField<String>> SchmargsField<String> for Vec<Item> {
-    fn parse_str(val: String) -> Result<Self, SchmargsError<String>> {
+impl<T: AsRef<str> + for<'a> From<&'a str>, Item: SchmargsField<T>> SchmargsField<T> for Vec<Item> {
+    fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
         let mut vec = Vec::with_capacity(1);
-        for val in val.split(',') {
+        for val in val.as_ref().split(',') {
             vec.push(SchmargsField::parse_str(val.into())?);
         }
         Ok(vec)
     }
 
-    fn parse_it(
-        val: String,
-        it: impl Iterator<Item = String>,
-    ) -> Result<Self, SchmargsError<String>> {
+    fn parse_it(val: T, it: impl Iterator<Item = T>) -> Result<Self, SchmargsError<T>> {
         let mut vec = Vec::with_capacity(1 + it.size_hint().0);
         vec.push(SchmargsField::parse_str(val)?);
         for val in it {
