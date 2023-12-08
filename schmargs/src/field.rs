@@ -43,6 +43,18 @@ impl_on_integer!(i64);
 impl_on_integer!(i128);
 impl_on_integer!(isize);
 
+impl<U, T: AsRef<str>> SchmargsField<T> for *const U {
+    fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
+        Ok(usize::parse_str(val)? as *const U)
+    }
+}
+
+impl<U, T: AsRef<str>> SchmargsField<T> for *mut U {
+    fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
+        Ok(usize::parse_str(val)? as *mut U)
+    }
+}
+
 #[doc(hidden)]
 pub trait StringLike: AsRef<str> {}
 impl StringLike for str {}

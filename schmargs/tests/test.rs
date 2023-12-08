@@ -132,6 +132,23 @@ fn signed_integers() {
 }
 
 #[test]
+fn pointers() {
+    #[derive(Schmargs)]
+    /// Description goes here
+    struct Args {
+        /// Pointer to god knows what
+        a: *mut u8,
+        /// Pointer to god doesn't knows what
+        b: *const (),
+    }
+
+    let args = Args::parse("0xfe 0x3141592".split_whitespace()).unwrap();
+
+    assert_eq!(args.a as usize, 0xfe);
+    assert_eq!(args.b as usize, 0x3141592);
+}
+
+#[test]
 fn help_arg() {
     use schmargs::ArgsWithHelp;
 
