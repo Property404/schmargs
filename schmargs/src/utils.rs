@@ -57,4 +57,9 @@ impl<T: AsRef<str>, InputIterator: Iterator<Item = T>> Iterator for DumbIterator
             Some(DumbArgument::Positional(arg))
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let sh = self.args.size_hint();
+        (sh.0, sh.1)
+    }
 }

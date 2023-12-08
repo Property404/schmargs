@@ -55,17 +55,15 @@ impl<U, T: AsRef<str>> SchmargsField<T> for *mut U {
     }
 }
 
-#[doc(hidden)]
-pub trait StringLike: AsRef<str> {}
-impl StringLike for str {}
-impl StringLike for &str {}
-#[cfg(feature = "std")]
-impl StringLike for String {}
-#[cfg(feature = "std")]
-impl StringLike for &String {}
+impl<'a> SchmargsField<&'a str> for &'a str {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
+        Ok(val)
+    }
+}
 
-impl<T: StringLike> SchmargsField<T> for T {
-    fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
+#[cfg(feature = "std")]
+impl SchmargsField<String> for String {
+    fn parse_str(val: String) -> Result<Self, SchmargsError<String>> {
         Ok(val)
     }
 }
@@ -84,8 +82,7 @@ impl<Item: SchmargsField<String>> SchmargsField<String> for Vec<Item> {
         val: String,
         it: impl Iterator<Item = String>,
     ) -> Result<Self, SchmargsError<String>> {
-        let hint = it.size_hint();
-        let mut vec = Vec::with_capacity(1 + hint.0);
+        let mut vec = Vec::with_capacity(1 + it.size_hint().0);
         vec.push(SchmargsField::parse_str(val)?);
         for val in it {
             vec.push(SchmargsField::parse_str(val)?);
