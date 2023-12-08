@@ -9,6 +9,7 @@ edition = "2021"
 missing_docs = "warn"
 
 [dependencies]
+derive_more = { version = "1.0.0-beta.6", default-features = false, features = ["from", "display"] }
 schmargs-derive = { version = "0.0.0", path = "../schmargs-derive" }
 
 [features]

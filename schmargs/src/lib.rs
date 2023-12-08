@@ -130,7 +130,7 @@ mod schmargs;
 pub mod utils;
 mod wrappers;
 
-pub use error::SchmargsError;
+pub use error::{SchmargsError, StrippedSchmargsError};
 pub use field::SchmargsField;
 pub use schmargs::Schmargs;
 pub use schmargs_derive::*;
