@@ -62,6 +62,20 @@ impl<'a> SchmargsField<&'a str> for &'a str {
 }
 
 #[cfg(feature = "std")]
+impl<'a> SchmargsField<&'a str> for &'a std::path::Path {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
+        Ok(val.as_ref())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: Into<std::path::PathBuf>> SchmargsField<T> for std::path::PathBuf {
+    fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
+        Ok(val.into())
+    }
+}
+
+#[cfg(feature = "std")]
 impl SchmargsField<String> for String {
     fn parse_str(val: String) -> Result<Self, SchmargsError<String>> {
         Ok(val)

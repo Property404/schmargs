@@ -336,4 +336,22 @@ mod with_feature_std {
         let args = Args::parse(arguments).unwrap();
         assert_eq!(args.puppies, vec!["Billy", "Samantha", "Muffin"]);
     }
+
+    #[test]
+    fn path() {
+        use std::path::PathBuf;
+
+        #[derive(Schmargs)]
+        #[schmargs(iterates_over = String)]
+        /// Automatic puppy kicker
+        struct Args {
+            /// Path in which puppies file is located
+            puppy_file: PathBuf,
+        }
+
+        let arguments = "/path/to/file".split_whitespace().map(ToString::to_string);
+
+        let args = Args::parse(arguments).unwrap();
+        assert_eq!(args.puppy_file, PathBuf::from("/path/to/file"));
+    }
 }
