@@ -69,6 +69,13 @@ impl SchmargsField<String> for String {
 }
 
 #[cfg(feature = "std")]
+impl<'a> SchmargsField<&'a str> for String {
+    fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
+        Ok(val.into())
+    }
+}
+
+#[cfg(feature = "std")]
 impl<T: AsRef<str> + for<'a> From<&'a str>, Item: SchmargsField<T>> SchmargsField<T> for Vec<Item> {
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
         let mut vec = Vec::with_capacity(1);
