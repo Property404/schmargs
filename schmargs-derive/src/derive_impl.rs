@@ -81,6 +81,12 @@ impl Arg {
         None
     }
 
+    // Return as "__schmargs_ident_<ident>"
+    fn unique_ident(&self) -> Ident {
+        let ident = String::from("__schmargs_ident_") + &self.ident.to_string();
+        Ident::new(&ident, self.ident.span().clone())
+    }
+
     // Return as "--long"
     fn long(&self) -> Option<String> {
         if let Some(ArgAttribute {
@@ -331,15 +337,17 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
     };
 
     for arg in args {
-        let ident = &arg.ident;
+        let ident = &arg.unique_ident();
         body.extend(match arg.kind() {
             ArgKind::Flag => {
                 quote! {
+                    #[allow(non_snake_case)]
                     let mut #ident = false;
                 }
             }
             ArgKind::Positional | ArgKind::Option => {
                 quote! {
+                    #[allow(non_snake_case)]
                     let mut #ident = ::schmargs::SchmargsField::<#string_type>::as_option();
                 }
             }
@@ -352,7 +360,7 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
             .iter()
             .filter(|a| a.kind() == ArgKind::Flag || a.kind() == ArgKind::Option)
         {
-            let ident = &arg.ident;
+            let ident = &arg.unique_ident();
             if let Some(short) = arg.short() {
                 body.extend(quote! { #short =>});
                 if arg.kind() == ArgKind::Flag {
@@ -383,7 +391,7 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
             .iter()
             .filter(|a| a.kind() == ArgKind::Flag || a.kind() == ArgKind::Option)
         {
-            let ident = &arg.ident;
+            let ident = &arg.unique_ident();
             if let Some(long) = arg.long() {
                 body.extend(
                     quote! { ::schmargs::utils::DumbArgument::LongFlag(__schmargs_throwaway) if ::core::convert::AsRef::<str>::as_ref(&__schmargs_throwaway) == #long =>},
@@ -410,7 +418,7 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
         let (num, positional): (Vec<usize>, Vec<proc_macro2::Ident>) = args
             .iter()
             .filter(|a| a.kind() == ArgKind::Positional)
-            .map(|a| a.ident.clone())
+            .map(|a| a.unique_ident().clone())
             .enumerate()
             .unzip();
         if !positional.is_empty() {
@@ -446,14 +454,15 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
         let mut body: TokenStream = Default::default();
 
         for arg in args {
-            let ident = &arg.ident;
+            let original_ident = &arg.ident;
+            let unique_ident = &arg.unique_ident();
             body.extend(match arg.kind() {
                 ArgKind::Flag => quote! {
-                    #ident,
+                    #original_ident: #unique_ident,
                 },
                 ArgKind::Positional | ArgKind::Option => quote! {
-                    #ident: #ident.ok_or(
-                        ::schmargs::SchmargsError::ExpectedValue(stringify!(#ident))
+                    #original_ident: #unique_ident.ok_or(
+                        ::schmargs::SchmargsError::ExpectedValue(stringify!(#original_ident))
                     )?,
                 },
             });
@@ -518,7 +527,7 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
     }
 
     for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-        let ident = &arg.ident;
+        let ident = &arg.unique_ident();
         body.extend(quote! {
             write!(f, " [{}]", stringify!(#ident))?;
         });
@@ -533,7 +542,7 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
             writeln!(f, "Arguments:")?;
         });
         for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-            let ident = &arg.ident;
+            let ident = &arg.unique_ident();
             let desc = &arg.attr.doc.value;
             body.extend(quote! {
                 writeln!(f, "[{}]        {}", stringify!(#ident), #desc)?;
