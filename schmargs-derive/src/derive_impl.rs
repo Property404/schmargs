@@ -81,15 +81,19 @@ impl Arg {
         None
     }
 
-    fn long(&self) -> Option<Literal> {
+    // Return as "--long"
+    fn long(&self) -> Option<String> {
         if let Some(ArgAttribute {
             long: Some(long), ..
         }) = &self.attr.arg
         {
-            return Some(
-                long.clone()
-                    .unwrap_or_else(|| Literal::string(&self.ident.to_string())),
-            );
+            let long: String = long
+                .clone()
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| self.ident.to_string());
+            let long = String::from("--")
+                + &snailquote::unescape(&long).expect("Failed to unescape string");
+            return Some(long);
         }
         None
     }
@@ -382,7 +386,7 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
             let ident = &arg.ident;
             if let Some(long) = arg.long() {
                 body.extend(
-                    quote! { ::schmargs::utils::DumbArgument::LongFlag(__schmargs_throwaway) if ::core::convert::AsRef::<str>::as_ref(&__schmargs_throwaway) == concat!("--",#long) =>},
+                    quote! { ::schmargs::utils::DumbArgument::LongFlag(__schmargs_throwaway) if ::core::convert::AsRef::<str>::as_ref(&__schmargs_throwaway) == #long =>},
                 );
                 if arg.kind() == ArgKind::Flag {
                     body.extend(quote! { {
@@ -493,12 +497,10 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
 
 fn impl_help_body(args: &[Arg]) -> TokenStream {
     let mut body = {
-        let long = args
-            .iter()
-            .map(|v| v.long().map(|v| v.to_string()).unwrap_or_default());
+        let long = args.iter().map(|v| v.long().unwrap_or_default());
         quote! {
             #(
-                min_indent = ::core::cmp::max(min_indent, "-h, --".len() + #long.len() + 1);
+                min_indent = ::core::cmp::max(min_indent, "-h, ".len() + #long.len() + 1);
             )*
         }
     };
@@ -572,8 +574,8 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
             }
             if let Some(long) = arg.long() {
                 body.extend(quote! {
-                    write!(f, "--{}", #long)?;
-                    revindent += 2 + #long.len();
+                    write!(f, #long)?;
+                    revindent += #long.len();
                 });
             }
 
