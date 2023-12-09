@@ -21,6 +21,7 @@ where
 
     const NAME: &'static str = W::SchmargsType::NAME;
     const VERSION: &'static str = W::SchmargsType::VERSION;
+    const USAGE: &'static str = W::SchmargsType::USAGE;
     const DESCRIPTION: &'static str = W::SchmargsType::DESCRIPTION;
 
     fn write_help_with_min_indent(

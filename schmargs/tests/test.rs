@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use schmargs::{Schmargs, SchmargsField};
 
 #[test]
@@ -275,6 +276,19 @@ fn name_and_description() {
 
     assert_eq!(Args::NAME, "pupkick");
     assert_eq!(Args::DESCRIPTION, "Automatic puppy kicker");
+}
+
+#[test]
+fn usage_text() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        puppy: Option<&'a str>,
+    }
+
+    assert_eq!(Args::USAGE, "pupkick [puppy]");
 }
 
 #[cfg(feature = "std")]

@@ -54,6 +54,7 @@ struct Arg {
     attr: AttributeAggregate,
     ident: Ident,
     is_bool: bool,
+    is_option: bool,
 }
 
 impl Arg {
@@ -84,7 +85,7 @@ impl Arg {
     // Return as "__schmargs_ident_<ident>"
     fn unique_ident(&self) -> Ident {
         let ident = String::from("__schmargs_ident_") + &self.ident.to_string();
-        Ident::new(&ident, self.ident.span().clone())
+        Ident::new(&ident, self.ident.span())
     }
 
     // Return as "--long"
@@ -287,10 +288,12 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<proc_macro::TokenStrea
         .iter()
         .map(|field| {
             let is_bool = field.ty.span().source_text().unwrap() == "bool";
+            let is_option = field.ty.span().source_text().unwrap().starts_with("Option");
             let attr = parse_attributes(&field.attrs).unwrap();
             let ident = field.ident.clone().unwrap().clone();
             Arg {
                 is_bool,
+                is_option,
                 attr,
                 ident,
             }
@@ -299,12 +302,16 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<proc_macro::TokenStrea
 
     let help_body = impl_help_body(&args);
     let parse_body = impl_parse_body(&string_type, &args);
+    let usage_body = impl_usage_body(&command_name, &args);
 
     let mut gen = quote! {
         impl #impl_generics ::schmargs::Schmargs<#lifetime> for #struct_name #bare_generics {
             type Item = #string_type;
 
             const NAME: &'static str = #command_name;
+            const USAGE: &'static str = {
+                #usage_body
+            };
             const VERSION: &'static str = env!("CARGO_PKG_VERSION");
             const DESCRIPTION: &'static str = #description;
 
@@ -517,23 +524,7 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
     body.extend(quote! {
         writeln!(f, "{}", Self::DESCRIPTION)?;
         writeln!(f)?;
-        write!(f, "Usage: {}", Self::NAME)?;
-    });
-
-    if args.iter().any(|v| v.kind() == ArgKind::Flag) {
-        body.extend(quote! {
-            write!(f, " [OPTIONS]")?;
-        });
-    }
-
-    for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-        let ident = &arg.unique_ident();
-        body.extend(quote! {
-            write!(f, " [{}]", stringify!(#ident))?;
-        });
-    }
-    body.extend(quote! {
-        writeln!(f)?;
+        writeln!(f, "Usage: {}", Self::USAGE)?;
     });
 
     if args.iter().any(|v| v.kind() == ArgKind::Positional) {
@@ -542,7 +533,7 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
             writeln!(f, "Arguments:")?;
         });
         for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-            let ident = &arg.unique_ident();
+            let ident = &arg.ident;
             let desc = &arg.attr.doc.value;
             body.extend(quote! {
                 writeln!(f, "[{}]        {}", stringify!(#ident), #desc)?;
@@ -601,4 +592,31 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
         Ok(min_indent)
     });
     body
+}
+
+fn impl_usage_body(command_name: &TokenStream, args: &[Arg]) -> TokenStream {
+    let mut body = quote! {};
+
+    if args.iter().any(|v| v.kind() == ArgKind::Flag) {
+        body.extend(quote! {
+            , " [OPTIONS]"
+        });
+    }
+
+    for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
+        let ident = &arg.ident;
+        if arg.is_option {
+            body.extend(quote! {
+                ," [", stringify!(#ident) ,"]"
+            });
+        } else {
+            body.extend(quote! {
+                , " ", stringify!(#ident)
+            });
+        }
+    }
+
+    quote! {
+        concat!(#command_name #body)
+    }
 }

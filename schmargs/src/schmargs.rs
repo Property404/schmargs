@@ -9,6 +9,9 @@ pub trait Schmargs<'a>: Sized {
     /// Name of the command
     const NAME: &'static str;
 
+    /// Usage text
+    const USAGE: &'static str;
+
     /// Command version
     const VERSION: &'static str;
 
@@ -56,7 +59,8 @@ pub trait Schmargs<'a>: Sized {
         match Self::parse(args) {
             Ok(args) => args,
             Err(err) => {
-                eprintln!("{}: error: {err}", Self::NAME);
+                eprintln!("{}: {err}", Self::NAME);
+                eprintln!("Usage: {}", Self::USAGE);
                 std::process::exit(1);
             }
         }
