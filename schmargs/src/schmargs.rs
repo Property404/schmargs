@@ -75,7 +75,7 @@ pub trait Schmargs<'a>: Sized {
 
 pub struct HelpObject<T>(PhantomData<T>);
 
-impl<S: for<'a> Schmargs<'a>> fmt::Display for HelpObject<S> {
+impl<'a, S: Schmargs<'a>> fmt::Display for HelpObject<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         S::write_help_with_min_indent(f, 0)?;
         Ok(())

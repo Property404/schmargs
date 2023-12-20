@@ -530,13 +530,13 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
     if args.iter().any(|v| v.kind() == ArgKind::Positional) {
         body.extend(quote! {
             writeln!(f)?;
-            writeln!(f, "Arguments:")?;
+            write!(f, "Arguments:")?;
         });
         for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
             let ident = &arg.ident;
             let desc = &arg.attr.doc.value;
             body.extend(quote! {
-                writeln!(f, "[{}]        {}", stringify!(#ident), #desc)?;
+                write!(f, "\n[{}]        {}", stringify!(#ident), #desc)?;
             });
         }
     }

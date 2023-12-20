@@ -291,6 +291,27 @@ fn usage_text() {
     assert_eq!(Args::USAGE, "pupkick [puppy]");
 }
 
+#[test]
+fn help_text() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        puppy: Option<&'a str>,
+    }
+
+    assert_eq!(
+        format!("{}", Args::help()),
+        "Automatic puppy kicker
+
+Usage: pupkick [puppy]
+
+Arguments:
+[puppy]        The puppy to kick"
+    );
+}
+
 #[cfg(feature = "std")]
 mod with_feature_std {
     use super::*;
