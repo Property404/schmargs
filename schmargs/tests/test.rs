@@ -312,6 +312,20 @@ Arguments:
     );
 }
 
+#[test]
+fn translate_underscore_to_hyphens() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        #[arg(short, long)]
+        puppy_to_kick: Option<&'a str>,
+    }
+
+    Args::parse("--puppy-to-kick joe".split_whitespace()).unwrap();
+}
+
 #[cfg(feature = "std")]
 mod with_feature_std {
     use super::*;

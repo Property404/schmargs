@@ -97,7 +97,7 @@ impl Arg {
             let long: String = long
                 .clone()
                 .map(|v| v.to_string())
-                .unwrap_or_else(|| self.ident.to_string());
+                .unwrap_or_else(|| self.ident.to_string().replace('_', "-"));
             let long = String::from("--")
                 + &snailquote::unescape(&long).expect("Failed to unescape string");
             return Some(long);
