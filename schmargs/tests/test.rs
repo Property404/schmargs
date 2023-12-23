@@ -332,7 +332,7 @@ fn help_text2() {
 Usage: pupkick [OPTIONS] puppy
 
 Arguments:
-[puppy]        The puppy to kick
+puppy        The puppy to kick
 
 Options:
 -e, --eat Eat the puppy after kicking it?"

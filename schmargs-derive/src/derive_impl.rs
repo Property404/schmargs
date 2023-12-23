@@ -535,8 +535,17 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
         for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
             let ident = &arg.ident;
             let desc = &arg.attr.doc.value;
+            if arg.is_option {
+                body.extend(quote! {
+                    write!(f, "\n[{}]", stringify!(#ident))?;
+                });
+            } else {
+                body.extend(quote! {
+                    write!(f, "\n{}", stringify!(#ident))?;
+                });
+            }
             body.extend(quote! {
-                write!(f, "\n[{}]        {}", stringify!(#ident), #desc)?;
+                write!(f, "        {}", #desc)?;
             });
         }
     }
