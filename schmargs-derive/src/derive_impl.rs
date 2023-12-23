@@ -524,12 +524,12 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
     body.extend(quote! {
         writeln!(f, "{}", Self::DESCRIPTION)?;
         writeln!(f)?;
-        writeln!(f, "Usage: {}", Self::USAGE)?;
+        write!(f, "Usage: {}", Self::USAGE)?;
     });
 
     if args.iter().any(|v| v.kind() == ArgKind::Positional) {
         body.extend(quote! {
-            writeln!(f)?;
+            writeln!(f, "\n")?;
             write!(f, "Arguments:")?;
         });
         for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
@@ -546,7 +546,7 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
         .any(|v| v.kind() == ArgKind::Flag || v.kind() == ArgKind::Option)
     {
         body.extend(quote! {
-            writeln!(f)?;
+            writeln!(f, "\n")?;
             write!(f, "Options:")?;
         });
         for arg in args

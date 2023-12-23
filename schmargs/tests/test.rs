@@ -313,6 +313,33 @@ Arguments:
 }
 
 #[test]
+fn help_text2() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// Eat the puppy after kicking it?
+        #[arg(short, long)]
+        eat: bool,
+        /// The puppy to kick
+        puppy: &'a str,
+    }
+
+    assert_eq!(
+        format!("{}", Args::help()),
+        "Automatic puppy kicker
+
+Usage: pupkick [OPTIONS] puppy
+
+Arguments:
+[puppy]        The puppy to kick
+
+Options:
+-e, --eat Eat the puppy after kicking it?"
+    );
+}
+
+#[test]
 fn translate_underscore_to_hyphens() {
     #[derive(Schmargs)]
     #[schmargs(name = "pupkick")]
