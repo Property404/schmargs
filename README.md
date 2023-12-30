@@ -7,9 +7,9 @@ A argument parser that can be used with `#[no_std]`
 * `clap-derive`-inspired derive macro
 * `#![no_std]`-friendly
 * Optional arguments
-* Multi-arg positional arguments and options with [std::vec::Vec]
+* Multi-arg positional arguments and options with [std::vec::Vec](https://doc.rust-lang.org/1.75.0/alloc/vec/struct.Vec.html)
 * Custom and default short and long flags
-* A [wrapper](ArgsWithHelp) that allows for `--help` functionality
+* A wrapper that allows for `--help` functionality
 
 ## Todo
 
@@ -25,10 +25,10 @@ This is an optional attribute that should be specified at the top level.
 Arguments:
 
 * `name=<str literal>` - The name of the program. Defaults to the crate name.
-* `iterates_over=<type>` - The string type that's being iterated over. This should be the `Item`
- associated type of the [core::iter::Iterator] type passed to [Schmargs::parse]. This defaults
- to `&str` with an appropriate lifetime. If you're in an `std` environment and plan on parsing
- arguments passed to your program with `Schmargs::parse_env`, `iterates_over` MUST be specified.
+* `iterates_over=<type>` - The string type that’s being iterated over. This should be the `Item`
+  associated type of the [core::iter::Iterator](https://doc.rust-lang.org/1.75.0/core/iter/traits/iterator/trait.Iterator.html) type passed to Schmargs::parse. This defaults
+  to `&str` with an appropriate lifetime. If you’re in an `std` environment and plan on parsing
+  arguments passed to your program with `Schmargs::parse_env`, `iterates_over` MUST be specified.
 
 ### `args`
 
@@ -37,14 +37,14 @@ This is an optional attribute that should be specified on an argument.
 Arguments:
 
 * `short[=<char literal>]` - The short flag of the argument. If no value is provided, it will
- default to the first letter of the argument name.
+  default to the first letter of the argument name.
 * `long[=<str literal>]` - The long flag of the argument. If no value is provided, it will
- default to the the argument name.
+  default to the the argument name.
 
 ## Example
 
 When using in an `std` environment, you generally want to specify `iterates_over` to be
-`String`, so you can iterate over [std::env::Args].
+`String`, so you can iterate over [std::env::Args](https://doc.rust-lang.org/1.75.0/std/env/struct.Args.html).
 
 ```rust
 use schmargs::Schmargs;
@@ -121,4 +121,6 @@ assert_eq!(args.kick_shins, false);
 assert_eq!(args.person, "Dagan");
 ```
 
-License: MIT OR Apache-2.0
+## License
+
+MIT OR Apache-2.0
