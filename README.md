@@ -7,7 +7,7 @@ A argument parser that can be used with `#[no_std]`
 * `clap-derive`-inspired derive macro
 * `#![no_std]`-friendly
 * Optional arguments
-* Multi-arg positional arguments and options with [std::vec::Vec](https://doc.rust-lang.org/1.75.0/alloc/vec/struct.Vec.html)
+* Multi-arg positional arguments and options with [std::vec::Vec](https://doc.rust-lang.org/alloc/vec/struct.Vec.html)
 * Custom and default short and long flags
 * A wrapper that allows for `--help` functionality
 
@@ -26,7 +26,7 @@ Arguments:
 
 * `name=<str literal>` - The name of the program. Defaults to the crate name.
 * `iterates_over=<type>` - The string type that’s being iterated over. This should be the `Item`
-  associated type of the [core::iter::Iterator](https://doc.rust-lang.org/1.75.0/core/iter/traits/iterator/trait.Iterator.html) type passed to Schmargs::parse. This defaults
+  associated type of the [core::iter::Iterator](https://doc.rust-lang.org/core/iter/traits/iterator/trait.Iterator.html) type passed to Schmargs::parse. This defaults
   to `&str` with an appropriate lifetime. If you’re in an `std` environment and plan on parsing
   arguments passed to your program with `Schmargs::parse_env`, `iterates_over` MUST be specified.
 
@@ -44,7 +44,7 @@ Arguments:
 ## Example
 
 When using in an `std` environment, you generally want to specify `iterates_over` to be
-`String`, so you can iterate over [std::env::Args](https://doc.rust-lang.org/1.75.0/std/env/struct.Args.html).
+`String`, so you can iterate over [std::env::Args](https://doc.rust-lang.org/std/env/struct.Args.html).
 
 ```rust
 use schmargs::Schmargs;
