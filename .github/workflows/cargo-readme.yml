@@ -1,5 +1,5 @@
 ---
-name: README.md up-to-date
+name: cargo-readme
 
 # yamllint disable-line rule:truthy
 on: [push, pull_request]
