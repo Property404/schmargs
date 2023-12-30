@@ -22,5 +22,5 @@ jobs:
 
       - name: Make sure README up-to-date
         run: cd schmargs &&
-          cargo --unpin-std-docs doc2readme > ../README.md &&
+          cargo doc2readme --unpin-std-docs > ../README.md &&
           git diff --exit-code
