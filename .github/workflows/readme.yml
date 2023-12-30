@@ -1,0 +1,23 @@
+---
+name: README.md up-to-date
+
+# yamllint disable-line rule:truthy
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install `cargo-doc2readme`
+        run: cargo install
+          --git https://github.com/Property404/doc2readme
+          --profile dev
+          cargo-doc2readme
+
+      - name: Make sure README up-to-date
+        run: cd schmargs && cargo doc2readme > ../README.md &&
+          git diff --exit-code

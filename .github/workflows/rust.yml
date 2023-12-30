@@ -40,13 +40,3 @@ jobs:
 
       - name: Build documentation
         run: cargo doc --verbose
-
-      - name: Install `cargo-doc2readme`
-        run: cargo install
-          --git https://github.com/Property404/doc2readme
-          --profile dev
-          cargo-doc2readme
-
-      - name: Make sure README up-to-date
-        run: cd schmargs && cargo doc2readme > ../README.md &&
-          git diff --exit-code
