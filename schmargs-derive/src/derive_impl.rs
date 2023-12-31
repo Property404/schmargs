@@ -598,7 +598,11 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
             let left_portion = &arg.1;
             let right_portion = &arg.0.attr.doc.value;
             body.extend(quote! {
-                write!(f, "\n{}        {}", #left_portion, #right_portion)?;
+                write!(f, "\n{}", #left_portion)?;
+                for _ in 0..min_indent.saturating_sub(str::len(#left_portion)) {
+                    write!(f, " ")?;
+                }
+                write!(f, "{}", #right_portion)?;
             });
         }
     }
