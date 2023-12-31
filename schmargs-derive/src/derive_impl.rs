@@ -531,12 +531,48 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
     body
 }
 
+fn display_arg(arg: &Arg) -> String {
+    if arg.kind() == ArgKind::Positional {
+        let value_name = arg.value_name();
+        return if arg.is_option {
+            format!("[{value_name}]")
+        } else {
+            value_name
+        };
+    }
+
+    let mut string = String::new();
+
+    if let Some(short) = arg.short() {
+        string.push('-');
+        string.push_str(
+            snailquote::unescape(&short.to_string())
+                .expect("Failed to unescape string")
+                .as_str(),
+        );
+        if arg.long().is_some() {
+            string.push_str(", ");
+        }
+    }
+
+    if let Some(long) = arg.long() {
+        string.push_str(long.to_string().as_str());
+    }
+
+    if arg.kind() == ArgKind::Option {
+        string.push_str(&format!(" <{}>", arg.value_name()));
+    }
+
+    string
+}
+
 fn impl_help_body(args: &[Arg]) -> TokenStream {
+    let pretty_args: Vec<_> = args.iter().map(|arg| (arg, display_arg(arg))).collect();
     let mut body = {
-        let long = args.iter().map(|v| v.long().unwrap_or_default());
+        let pretty_args = pretty_args.iter().map(|v| &v.1);
         quote! {
             #(
-                min_indent = ::core::cmp::max(min_indent, "-h, ".len() + #long.len() + 1);
+                min_indent = ::core::cmp::max(min_indent, str::len(#pretty_args) + 1);
             )*
         }
     };
@@ -547,72 +583,50 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
         write!(f, "Usage: {}", Self::USAGE)?;
     });
 
-    if args.iter().any(|v| v.kind() == ArgKind::Positional) {
+    if pretty_args
+        .iter()
+        .any(|v| v.0.kind() == ArgKind::Positional)
+    {
         body.extend(quote! {
             writeln!(f, "\n")?;
             write!(f, "Arguments:")?;
         });
-        for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-            let value_name = arg.value_name();
-            let desc = &arg.attr.doc.value;
-            if arg.is_option {
-                body.extend(quote! {
-                    write!(f, "\n[{}]", #value_name)?;
-                });
-            } else {
-                body.extend(quote! {
-                    write!(f, "\n{}", #value_name)?;
-                });
-            }
+        for arg in pretty_args
+            .iter()
+            .filter(|v| v.0.kind() == ArgKind::Positional)
+        {
+            let left_portion = &arg.1;
+            let right_portion = &arg.0.attr.doc.value;
             body.extend(quote! {
-                write!(f, "        {}", #desc)?;
+                write!(f, "\n{}        {}", #left_portion, #right_portion)?;
             });
         }
     }
 
-    if args
+    if pretty_args
         .iter()
-        .any(|v| v.kind() == ArgKind::Flag || v.kind() == ArgKind::Option)
+        .any(|v| v.0.kind() == ArgKind::Flag || v.0.kind() == ArgKind::Option)
     {
         body.extend(quote! {
             writeln!(f, "\n")?;
             write!(f, "Options:")?;
         });
-        for arg in args
+        for arg in pretty_args
             .iter()
-            .filter(|v| v.kind() == ArgKind::Flag || v.kind() == ArgKind::Option)
+            .filter(|v| v.0.kind() == ArgKind::Flag || v.0.kind() == ArgKind::Option)
         {
-            let desc = &arg.attr.doc.value;
-
+            let left_portion = &arg.1;
+            let right_portion = &arg.0.attr.doc.value;
             body.extend(quote! {
-                let mut revindent = 0;
-                writeln!(f)?;
+                let mut revindent = str::len(#left_portion);
+                write!(f, "\n{}", #left_portion)?;
             });
-
-            if let Some(short) = arg.short() {
-                body.extend(quote! {
-                    write!(f, "-{}", #short)?;
-                    revindent += 2;
-                });
-                if arg.long().is_some() {
-                    body.extend(quote! {
-                        write!(f, ", ")?;
-                        revindent += 2;
-                    });
-                }
-            }
-            if let Some(long) = arg.long() {
-                body.extend(quote! {
-                    write!(f, #long)?;
-                    revindent += #long.len();
-                });
-            }
 
             body.extend(quote! {
                 for _ in 0..min_indent.saturating_sub(revindent) {
                     write!(f, " ")?;
                 }
-                write!(f, "{}", #desc)?;
+                write!(f, "{}", #right_portion)?;
             });
         }
     }
