@@ -40,6 +40,8 @@
 //!  default to the first letter of the argument name.
 //! * `long[=<str literal>]` - The long flag of the argument. If no value is provided, it will
 //!  default to the the argument name.
+//! * `value_name=<str literal>` - Set the value name of the argument. This is only used for the
+//! help and usage text.
 //!
 //! # Example
 //!

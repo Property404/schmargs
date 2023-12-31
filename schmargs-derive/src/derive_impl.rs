@@ -28,6 +28,7 @@ struct TopLevelAttribute {
 struct ArgAttribute {
     short: Option<Option<Literal>>,
     long: Option<Option<Literal>>,
+    value_name: Option<Literal>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,8 +60,10 @@ struct Arg {
 
 impl Arg {
     fn kind(&self) -> ArgKind {
-        if self.attr.arg.is_some() {
-            if self.is_bool {
+        if let Some(arg) = &self.attr.arg {
+            if arg.short.is_none() && arg.long.is_none() {
+                ArgKind::Positional
+            } else if self.is_bool {
                 ArgKind::Flag
             } else {
                 ArgKind::Option
@@ -103,6 +106,19 @@ impl Arg {
             return Some(long);
         }
         None
+    }
+
+    // Return value name
+    fn value_name(&self) -> String {
+        if let Some(ArgAttribute {
+            value_name: Some(value_name),
+            ..
+        }) = &self.attr.arg
+        {
+            snailquote::unescape(&value_name.to_string()).expect("Could not unescape string")
+        } else {
+            self.ident.to_string().to_uppercase()
+        }
     }
 }
 
@@ -154,6 +170,10 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
                         .remove("short")
                         .map(|v| v.map(|v| v.unwrap_as_literal())),
                     long: map.remove("long").map(|v| v.map(|v| v.unwrap_as_literal())),
+                    value_name: map
+                        .remove("value_name")
+                        .flatten()
+                        .map(|v| v.unwrap_as_literal()),
                 })
             } else if attr.path().is_ident("schmargs") {
                 SchmargsAttribute::TopLevel(TopLevelAttribute {
@@ -533,15 +553,15 @@ fn impl_help_body(args: &[Arg]) -> TokenStream {
             write!(f, "Arguments:")?;
         });
         for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-            let ident = &arg.ident;
+            let value_name = arg.value_name();
             let desc = &arg.attr.doc.value;
             if arg.is_option {
                 body.extend(quote! {
-                    write!(f, "\n[{}]", stringify!(#ident))?;
+                    write!(f, "\n[{}]", #value_name)?;
                 });
             } else {
                 body.extend(quote! {
-                    write!(f, "\n{}", stringify!(#ident))?;
+                    write!(f, "\n{}", #value_name)?;
                 });
             }
             body.extend(quote! {
@@ -613,14 +633,14 @@ fn impl_usage_body(command_name: &TokenStream, args: &[Arg]) -> TokenStream {
     }
 
     for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-        let ident = &arg.ident;
+        let value_name = arg.value_name();
         if arg.is_option {
             body.extend(quote! {
-                ," [", stringify!(#ident) ,"]"
+                ," [", #value_name ,"]"
             });
         } else {
             body.extend(quote! {
-                , " ", stringify!(#ident)
+                , " ", #value_name
             });
         }
     }

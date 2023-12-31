@@ -288,7 +288,21 @@ fn usage_text() {
         puppy: Option<&'a str>,
     }
 
-    assert_eq!(Args::USAGE, "pupkick [puppy]");
+    assert_eq!(Args::USAGE, "pupkick [PUPPY]");
+}
+
+#[test]
+fn custom_value_name() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        #[arg(value_name = "KITTEN")]
+        puppy: Option<&'a str>,
+    }
+
+    assert_eq!(Args::USAGE, "pupkick [KITTEN]");
 }
 
 #[test]
@@ -305,10 +319,10 @@ fn help_text() {
         format!("{}", Args::help()),
         "Automatic puppy kicker
 
-Usage: pupkick [puppy]
+Usage: pupkick [PUPPY]
 
 Arguments:
-[puppy]        The puppy to kick"
+[PUPPY]        The puppy to kick"
     );
 }
 
@@ -329,10 +343,10 @@ fn help_text2() {
         format!("{}", Args::help()),
         "Automatic puppy kicker
 
-Usage: pupkick [OPTIONS] puppy
+Usage: pupkick [OPTIONS] PUPPY
 
 Arguments:
-puppy        The puppy to kick
+PUPPY        The puppy to kick
 
 Options:
 -e, --eat Eat the puppy after kicking it?"
