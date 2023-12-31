@@ -56,6 +56,7 @@ struct Arg {
     ident: Ident,
     is_bool: bool,
     is_option: bool,
+    is_collection: bool,
 }
 
 impl Arg {
@@ -307,13 +308,19 @@ pub fn schmargs_derive_impl(input: DeriveInput) -> Result<proc_macro::TokenStrea
         .named
         .iter()
         .map(|field| {
-            let is_bool = field.ty.span().source_text().unwrap() == "bool";
-            let is_option = field.ty.span().source_text().unwrap().starts_with("Option");
+            let source = field.ty.span().source_text().unwrap();
+            let is_bool = source == "bool";
+
+            let first_word_of_source = source.split_whitespace().next().unwrap();
+            let is_option = first_word_of_source == "Option";
+            let is_collection = first_word_of_source == "Vec";
+
             let attr = parse_attributes(&field.attrs).unwrap();
             let ident = field.ident.clone().unwrap().clone();
             Arg {
                 is_bool,
                 is_option,
+                is_collection,
                 attr,
                 ident,
             }
@@ -534,11 +541,15 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
 fn display_arg(arg: &Arg) -> String {
     if arg.kind() == ArgKind::Positional {
         let value_name = arg.value_name();
-        return if arg.is_option {
+        let mut value_name = if arg.is_option {
             format!("[{value_name}]")
         } else {
             value_name
         };
+        if arg.is_collection {
+            value_name.push_str("...");
+        }
+        return value_name;
     }
 
     let mut string = String::new();
@@ -561,6 +572,9 @@ fn display_arg(arg: &Arg) -> String {
 
     if arg.kind() == ArgKind::Option {
         string.push_str(&format!(" <{}>", arg.value_name()));
+        if arg.is_collection {
+            string.push_str("...");
+        }
     }
 
     string
@@ -651,16 +665,10 @@ fn impl_usage_body(command_name: &TokenStream, args: &[Arg]) -> TokenStream {
     }
 
     for arg in args.iter().filter(|v| v.kind() == ArgKind::Positional) {
-        let value_name = arg.value_name();
-        if arg.is_option {
-            body.extend(quote! {
-                ," [", #value_name ,"]"
-            });
-        } else {
-            body.extend(quote! {
-                , " ", #value_name
-            });
-        }
+        let arg = display_arg(arg);
+        body.extend(quote! {
+            , " ", #arg
+        });
     }
 
     quote! {

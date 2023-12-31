@@ -444,4 +444,17 @@ mod with_feature_std {
         let args = Args::parse(arguments).unwrap();
         assert_eq!(args.puppy_file, PathBuf::from("/path/to/file"));
     }
+
+    #[test]
+    fn usage_text_with_vec() {
+        #[derive(Schmargs)]
+        #[schmargs(name = "pupkick", iterates_over=String)]
+        /// Automatic puppy kicker
+        struct Args {
+            /// The puppies to kick
+            puppies: Vec<u32>,
+        }
+
+        assert_eq!(Args::USAGE, "pupkick PUPPIES...");
+    }
 }
