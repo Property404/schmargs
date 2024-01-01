@@ -29,6 +29,7 @@ struct ArgAttribute {
     short: Option<Option<Literal>>,
     long: Option<Option<Literal>>,
     value_name: Option<Literal>,
+    default_value: Option<TokenStream>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,6 +122,18 @@ impl Arg {
             self.ident.to_string().to_uppercase()
         }
     }
+
+    fn default_value(&self) -> Option<TokenStream> {
+        if let Some(ArgAttribute {
+            default_value: Some(default_value),
+            ..
+        }) = &self.attr.arg
+        {
+            Some(default_value.clone())
+        } else {
+            None
+        }
+    }
 }
 
 fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
@@ -175,6 +188,10 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
                         .remove("value_name")
                         .flatten()
                         .map(|v| v.unwrap_as_literal()),
+                    default_value: map.remove("default_value").map(|v| {
+                        v.map(|v| quote! {#v})
+                            .unwrap_or(quote! {::core::default::Default::default()})
+                    }),
                 })
             } else if attr.path().is_ident("schmargs") {
                 SchmargsAttribute::TopLevel(TopLevelAttribute {
@@ -372,17 +389,31 @@ fn impl_parse_body(string_type: &TokenStream, args: &[Arg]) -> TokenStream {
 
     for arg in args {
         let ident = &arg.unique_ident();
+        body.extend(quote! {
+            #[allow(non_snake_case)]
+            let mut #ident =
+        });
         body.extend(match arg.kind() {
             ArgKind::Flag => {
-                quote! {
-                    #[allow(non_snake_case)]
-                    let mut #ident = false;
+                if let Some(default) = arg.default_value() {
+                    quote! {
+                        #default;
+                    }
+                } else {
+                    quote! {
+                        false;
+                    }
                 }
             }
             ArgKind::Positional | ArgKind::Option => {
-                quote! {
-                    #[allow(non_snake_case)]
-                    let mut #ident = ::schmargs::SchmargsField::<#string_type>::as_option();
+                if let Some(default) = arg.default_value() {
+                    quote! {
+                        Some(#default);
+                    }
+                } else {
+                    quote! {
+                        ::schmargs::SchmargsField::<#string_type>::as_option();
+                    }
                 }
             }
         });

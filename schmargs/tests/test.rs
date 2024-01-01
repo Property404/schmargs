@@ -367,6 +367,52 @@ fn translate_underscore_to_hyphens() {
     Args::parse("--puppy-to-kick joe".split_whitespace()).unwrap();
 }
 
+#[test]
+fn default_values_flags() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args {
+        /// Kick the puppy?
+        #[arg(long, default_value = true)]
+        kick: bool,
+        /// Punch the puppy?
+        #[arg(long, default_value = false)]
+        punch: bool,
+        /// Bodyslam the puppy?
+        #[arg(long, default_value = false)]
+        bodyslam: bool,
+    }
+
+    let args = Args::parse("--bodyslam".split_whitespace()).unwrap();
+    assert!(args.kick);
+    assert!(!args.punch);
+    assert!(args.bodyslam);
+}
+
+#[test]
+fn default_values_positionals_and_options() {
+    #[derive(Schmargs)]
+    #[schmargs(name = "pupkick")]
+    /// Automatic puppy kicker
+    struct Args<'a> {
+        /// The puppy to kick
+        #[arg(default_value = "John")]
+        puppy: &'a str,
+        /// The kitten to kick
+        #[arg(default_value = "Kimberly")]
+        kitten: &'a str,
+        /// What to say when kicking the puppy
+        #[arg(long, default_value = "Fuck you, puppy")]
+        speech: &'a str,
+    }
+
+    let args = Args::parse("Sprinkles".split_whitespace()).unwrap();
+    assert_eq!(args.puppy, "Sprinkles");
+    assert_eq!(args.kitten, "Kimberly");
+    assert_eq!(args.speech, "Fuck you, puppy");
+}
+
 #[cfg(feature = "std")]
 mod with_feature_std {
     use super::*;

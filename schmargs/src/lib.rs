@@ -42,6 +42,8 @@
 //!  default to the the argument name.
 //! * `value_name=<str literal>` - Set the value name of the argument. This is only used for the
 //! help and usage text.
+//! * `default_value[=<expression>]` - Set the default value of the argument. Defaults to
+//! [Default::default]
 //!
 //! # Example
 //!
