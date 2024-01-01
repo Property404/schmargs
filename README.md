@@ -62,7 +62,7 @@ struct Args {
     volume: Option<u64>,
     /// Yell length, in nanoseconds
     // This defaults to 1 second
-    #[arg(short, long, default_value=1_000_000_000)]
+    #[arg(short, long, default_value = 1_000_000_000)]
     length: u64,
     /// Obscenities to yell
     content: Vec<String>,
