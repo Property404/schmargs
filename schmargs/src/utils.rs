@@ -37,9 +37,7 @@ impl<T: AsRef<str>, InputIterator: Iterator<Item = T>> Iterator for DumbIterator
     type Item = DumbArgument<T>;
 
     fn next(&mut self) -> Option<DumbArgument<T>> {
-        let Some(arg) = self.args.next() else {
-            return None;
-        };
+        let arg = self.args.next()?;
 
         if self.hit_double_dash {
             return Some(DumbArgument::Positional(arg));
