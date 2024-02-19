@@ -1,4 +1,8 @@
 use crate::error::SchmargsError;
+#[cfg(feature = "alloc")]
+extern crate alloc;
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 /// A field that can be parsed by Schmargs
 pub trait SchmargsField<T>: Sized {
@@ -89,7 +93,7 @@ impl<'a> SchmargsField<&'a str> for String {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
 impl<T: AsRef<str> + for<'a> From<&'a str>, Item: SchmargsField<T>> SchmargsField<T> for Vec<Item> {
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
         let mut vec = Vec::with_capacity(1);
