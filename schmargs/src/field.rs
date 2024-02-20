@@ -2,6 +2,8 @@ use crate::error::SchmargsError;
 #[cfg(feature = "alloc")]
 extern crate alloc;
 #[cfg(feature = "alloc")]
+use alloc::string::String;
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
 /// A field that can be parsed by Schmargs
@@ -79,26 +81,46 @@ impl<T: Into<std::path::PathBuf>> SchmargsField<T> for std::path::PathBuf {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
 impl SchmargsField<String> for String {
     fn parse_str(val: String) -> Result<Self, SchmargsError<String>> {
         Ok(val)
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
 impl<'a> SchmargsField<&'a str> for String {
     fn parse_str(val: &'a str) -> Result<Self, SchmargsError<&'a str>> {
         Ok(val.into())
     }
 }
 
+trait StringLike: Sized + AsRef<str> {
+    fn split_commas(self) -> impl Iterator<Item = Self>;
+}
+
+impl<'a> StringLike for &'a str {
+    fn split_commas(self) -> impl Iterator<Item = Self> {
+        self.split(',')
+    }
+}
+
 #[cfg(feature = "alloc")]
-impl<T: AsRef<str> + for<'a> From<&'a str>, Item: SchmargsField<T>> SchmargsField<T> for Vec<Item> {
+impl StringLike for String {
+    fn split_commas(self) -> impl Iterator<Item = Self> {
+        let val: &str = self.as_ref();
+        let val = val.split(',').map(Self::from);
+        let val: Vec<String> = val.collect();
+        val.into_iter()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: StringLike, Item: SchmargsField<T>> SchmargsField<T> for Vec<Item> {
     fn parse_str(val: T) -> Result<Self, SchmargsError<T>> {
         let mut vec = Vec::with_capacity(1);
-        for val in val.as_ref().split(',') {
-            vec.push(SchmargsField::parse_str(val.into())?);
+        for val in val.split_commas() {
+            vec.push(SchmargsField::parse_str(val)?);
         }
         Ok(vec)
     }
@@ -116,6 +138,10 @@ impl<T: AsRef<str> + for<'a> From<&'a str>, Item: SchmargsField<T>> SchmargsFiel
 impl<U, T: SchmargsField<U>> SchmargsField<U> for Option<T> {
     fn parse_str(val: U) -> Result<Self, SchmargsError<U>> {
         Ok(Some(T::parse_str(val)?))
+    }
+
+    fn parse_it(val: U, it: impl Iterator<Item = U>) -> Result<Self, SchmargsError<U>> {
+        Ok(Some(T::parse_it(val, it)?))
     }
 
     fn as_option() -> Option<Self> {

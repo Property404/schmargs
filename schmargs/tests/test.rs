@@ -474,6 +474,36 @@ mod with_feature_std {
     }
 
     #[test]
+    fn vec_of_strs() {
+        #[derive(Schmargs)]
+        /// Automatic puppy kicker
+        struct Args<'a> {
+            /// Which puppies to kick
+            puppies: Vec<&'a str>,
+        }
+
+        let arguments = "Billy Samantha Muffin".split_whitespace();
+
+        let args = Args::parse(arguments).unwrap();
+        assert_eq!(args.puppies, vec!["Billy", "Samantha", "Muffin"]);
+    }
+
+    #[test]
+    fn optional_vec() {
+        #[derive(Schmargs)]
+        /// Automatic puppy kicker
+        struct Args<'a> {
+            /// Which puppies to kick
+            puppies: Option<Vec<&'a str>>,
+        }
+
+        let arguments = "Billy Samantha Muffin".split_whitespace();
+
+        let args = Args::parse(arguments).unwrap();
+        assert_eq!(args.puppies.unwrap(), vec!["Billy", "Samantha", "Muffin"]);
+    }
+
+    #[test]
     fn path() {
         use std::path::PathBuf;
 
