@@ -80,9 +80,8 @@ impl<T: fmt::Display> Display for SchmargsError<T> {
     }
 }
 
-#[cfg(feature = "std")]
-impl<T: fmt::Debug + fmt::Display> std::error::Error for SchmargsError<T> {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl<T: fmt::Debug + fmt::Display> core::error::Error for SchmargsError<T> {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::ParseInt(err) => Some(err),
             _ => None,
@@ -90,9 +89,8 @@ impl<T: fmt::Debug + fmt::Display> std::error::Error for SchmargsError<T> {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for StrippedSchmargsError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for StrippedSchmargsError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::ParseInt(err) => Some(err),
             _ => None,
