@@ -26,9 +26,9 @@
 //!
 //! * `name=<str literal>` - The name of the program. Defaults to the crate name.
 //! * `iterates_over=<type>` - The string type that's being iterated over. This should be the `Item`
-//!  associated type of the [core::iter::Iterator] type passed to [Schmargs::parse]. This defaults
-//!  to `&str` with an appropriate lifetime. If you're in an `std` environment and plan on parsing
-//!  arguments passed to your program with `Schmargs::parse_env`, `iterates_over` MUST be specified.
+//!   associated type of the [core::iter::Iterator] type passed to [Schmargs::parse]. This defaults
+//!   to `&str` with an appropriate lifetime. If you're in an `std` environment and plan on parsing
+//!   arguments passed to your program with `Schmargs::parse_env`, `iterates_over` MUST be specified.
 //!
 //! ## `args`
 //!
@@ -37,13 +37,13 @@
 //! Arguments:
 //!
 //! * `short[=<char literal>]` - The short flag of the argument. If no value is provided, it will
-//!  default to the first letter of the argument name.
+//!   default to the first letter of the argument name.
 //! * `long[=<str literal>]` - The long flag of the argument. If no value is provided, it will
-//!  default to the the argument name.
+//!   default to the the argument name.
 //! * `value_name=<str literal>` - Set the value name of the argument. This is only used for the
-//! help and usage text.
+//!   help and usage text.
 //! * `default_value[=<expression>]` - Set the default value of the argument. Defaults to
-//! [Default::default]
+//!   [Default::default]
 //!
 //! # Example
 //!
