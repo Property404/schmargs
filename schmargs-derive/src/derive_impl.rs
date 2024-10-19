@@ -222,9 +222,9 @@ fn parse_attribute(attr: &Attribute) -> Result<SchmargsAttribute> {
             let syn::Lit::Str(ref value) = value.lit else {
                 bail!("Expected str literal attribute value ( i.e. doc comment)");
             };
-            return Ok(SchmargsAttribute::Doc(DocAttribute {
+            Ok(SchmargsAttribute::Doc(DocAttribute {
                 value: value.value().trim().into(),
-            }));
+            }))
         }
         _ => bail!("Expected name-value pair attribute (i.e. doc comment)"),
     }
