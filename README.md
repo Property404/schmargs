@@ -2,23 +2,23 @@
 
 A argument parser that can be used with `#[no_std]`
 
-## Features
+## §Features
 
 * `clap-derive`-inspired derive macro
 * `#![no_std]`-friendly
 * Optional arguments
-* Multi-arg positional arguments and options with [std::vec::Vec](https://doc.rust-lang.org/alloc/vec/struct.Vec.html)
+* Multi-arg positional arguments and options with [std::vec::Vec](https://doc.rust-lang.org/1.82.0/alloc/vec/struct.Vec.html)
 * Custom and default short and long flags
 * A wrapper that allows for `--help` functionality
 
-## Todo
+## §Todo
 
 * Improve documentation
 * Improve and write tests for help formatting
 
-## Helper Attributes
+## §Helper Attributes
 
-### `schmargs`
+### §`schmargs`
 
 This is an optional attribute that should be specified at the top level.
 
@@ -26,11 +26,11 @@ Arguments:
 
 * `name=<str literal>` - The name of the program. Defaults to the crate name.
 * `iterates_over=<type>` - The string type that’s being iterated over. This should be the `Item`
-  associated type of the [core::iter::Iterator](https://doc.rust-lang.org/core/iter/traits/iterator/trait.Iterator.html) type passed to Schmargs::parse. This defaults
+  associated type of the [core::iter::Iterator](https://doc.rust-lang.org/1.82.0/core/iter/traits/iterator/trait.Iterator.html) type passed to Schmargs::parse. This defaults
   to `&str` with an appropriate lifetime. If you’re in an `std` environment and plan on parsing
   arguments passed to your program with `Schmargs::parse_env`, `iterates_over` MUST be specified.
 
-### `args`
+### §`args`
 
 This is an optional attribute that should be specified on an argument.
 
@@ -43,12 +43,12 @@ Arguments:
 * `value_name=<str literal>` - Set the value name of the argument. This is only used for the
   help and usage text.
 * `default_value[=<expression>]` - Set the default value of the argument. Defaults to
-  [Default::default](https://doc.rust-lang.org/core/default/trait.Default.html#tymethod.default)
+  [Default::default](https://doc.rust-lang.org/1.82.0/core/default/trait.Default.html#tymethod.default)
 
-## Example
+## §Example
 
 When using in an `std` environment, you generally want to specify `iterates_over` to be
-`String`, so you can iterate over [std::env::Args](https://doc.rust-lang.org/std/env/struct.Args.html).
+`String`, so you can iterate over [std::env::Args](https://doc.rust-lang.org/1.82.0/std/env/struct.Args.html).
 
 ```rust
 use schmargs::Schmargs;
@@ -73,7 +73,7 @@ let args = Args::parse_env();
 println!("{:?}", args.content);
 ```
 
-## `#![no_std]` Examples
+## §`#![no_std]` Examples
 
 ```rust
 use schmargs::Schmargs;
